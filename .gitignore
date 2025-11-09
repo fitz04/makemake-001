@@ -1,0 +1,42 @@
+# Godot 4+ specific
+.godot/
+.import/
+debug_data/*
+
+# Godot export/build
+export_presets.cfg
+*.translation
+builds/
+*.exe
+*.pck
+*.zip
+
+# Mono/C# (if using)
+.mono/
+data_*/
+mono_crash.*.json
+
+# System files
+.DS_Store
+*.swp
+*.swo
+*~
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Logs
+*.log
+
+# Voxel terrain saved data (uncomment to ignore terrain edits)
+# voxel_data/
+# *.voxels
+
+# Temporary files
+*.tmp
+*.bak
+*.old
