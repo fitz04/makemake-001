@@ -1,15 +1,15 @@
 [gd_scene load_steps=32 format=3 uid="uid://blqdy4acm4wpa"]
 
-[ext_resource type="Script" path="res://ship/ship.gd" id="1"]
-[ext_resource type="Script" path="res://camera/camera_hints.gd" id="2"]
-[ext_resource type="Script" path="res://ship/ship_controller.gd" id="3"]
-[ext_resource type="Shader" path="res://ship/speed_particles.gdshader" id="4"]
-[ext_resource type="Script" path="res://ship/motion_particles.gd" id="5"]
+[ext_resource type="Script" uid="uid://dl2rpc78f2j0e" path="res://ship/ship.gd" id="1"]
+[ext_resource type="Script" uid="uid://cspqhbfuwyonl" path="res://camera/camera_hints.gd" id="2"]
+[ext_resource type="Script" uid="uid://bs5a4rmgkebl4" path="res://ship/ship_controller.gd" id="3"]
+[ext_resource type="Shader" uid="uid://ba5175gqwrb24" path="res://ship/speed_particles.gdshader" id="4"]
+[ext_resource type="Script" uid="uid://c2i0t5ib1rvmx" path="res://ship/motion_particles.gd" id="5"]
 [ext_resource type="Texture2D" uid="uid://cb4femk463wd7" path="res://ship/speed_particle.png" id="6"]
-[ext_resource type="PackedScene" uid="uid://2wk63qthu4s2" path="res://ship/model/ship.gltf" id="7"]
+[ext_resource type="PackedScene" uid="uid://bfwcyc4uydamt" path="res://ship/model/ship.gltf" id="7"]
 [ext_resource type="PackedScene" path="res://ship/jet_vfx.tscn" id="8"]
 [ext_resource type="AudioStream" uid="uid://wpud85h204s3" path="res://sounds/jet.wav" id="9"]
-[ext_resource type="Script" path="res://ship/ship_audio.gd" id="10"]
+[ext_resource type="Script" uid="uid://nqeoa8dbf8q3" path="res://ship/ship_audio.gd" id="10"]
 [ext_resource type="AudioStream" uid="uid://3x3m42oacvc2" path="res://sounds/jet2.wav" id="11"]
 [ext_resource type="AudioStream" uid="uid://bb2730roni77v" path="res://sounds/ship_stop.wav" id="12"]
 [ext_resource type="AudioStream" uid="uid://sfb1aa8camsq" path="res://sounds/ship_start.wav" id="13"]
@@ -39,8 +39,8 @@ tracks/0/path = NodePath("Visual/VisualRoot/ship/HatchDown:rotation")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
+"times": PackedFloat64Array(0),
+"transitions": PackedFloat64Array(1),
 "update": 0,
 "values": [Vector3(1.35534, 3.14159, 3.14159)]
 }
@@ -55,8 +55,8 @@ tracks/0/path = NodePath("Visual/VisualRoot/ship/HatchDown:rotation")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0, 2),
-"transitions": PackedFloat32Array(1, 1),
+"times": PackedFloat64Array(0, 2),
+"transitions": PackedFloat64Array(1, 1),
 "update": 0,
 "values": [Vector3(1.79769, 0, 0), Vector3(0.907571, 0, 0)]
 }
@@ -67,16 +67,16 @@ tracks/1/path = NodePath("Visual/VisualRoot/ship/HatchUp:rotation")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
-"times": PackedFloat32Array(0, 2),
-"transitions": PackedFloat32Array(1, 1),
+"times": PackedFloat64Array(0, 2),
+"transitions": PackedFloat64Array(1, 1),
 "update": 0,
 "values": [Vector3(-0.349066, 0, 0), Vector3(0.698132, 0, 0)]
 }
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_onvrj"]
 _data = {
-"RESET": SubResource("Animation_42goy"),
-"hatch_open": SubResource("Animation_yt7aa")
+&"RESET": SubResource("Animation_42goy"),
+&"hatch_open": SubResource("Animation_yt7aa")
 }
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_ta54x"]
@@ -85,8 +85,8 @@ size = Vector3(2, 3.32734, 0.230548)
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_yulrx"]
 render_priority = 0
 shader = ExtResource("4")
-shader_parameter/u_position = Vector3(0, 0, 0)
 shader_parameter/u_texture = ExtResource("6")
+shader_parameter/u_position = Vector3(0, 0, 0)
 shader_parameter/u_velocity = Vector3(0, 0, -20)
 
 [sub_resource type="Gradient" id="Gradient_q52kf"]
@@ -117,15 +117,15 @@ size = Vector2(0.3, 0.3)
 
 [node name="Ship" type="RigidBody3D"]
 gravity_scale = 0.0
-max_contacts_reported = 3
-contact_monitor = true
 can_sleep = false
+contact_monitor = true
+max_contacts_reported = 3
 linear_damp = 0.5
 angular_damp = 1.0
 script = ExtResource("1")
-linear_acceleration = 220.0
-angular_acceleration = 3.0
-speed_cap_in_space = 340.0
+linear_acceleration = 550.0
+angular_acceleration = 2.0
+speed_cap_in_space = 1340.0
 
 [node name="FlightCollisionShape" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0.297878, -0.538365)
@@ -158,7 +158,7 @@ shape = SubResource("SphereShape3D_vf3yo")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
-"": SubResource("AnimationLibrary_onvrj")
+&"": SubResource("AnimationLibrary_onvrj")
 }
 
 [node name="Visual" type="Node" parent="."]
@@ -172,7 +172,7 @@ transform = Transform3D(-1, 0, -3.25841e-07, 0, 1, 0, 3.25841e-07, 0, -1, 0, 0, 
 transform = Transform3D(1, 0, 0, 0, 0.939693, 0.34202, 0, -0.34202, 0.939693, 0, 0.907461, -7.5999)
 
 [node name="HatchDown" parent="Visual/VisualRoot/ship" index="3"]
-transform = Transform3D(1, 5.8616e-08, 5.42005e-07, 5.42005e-07, -0.213793, -0.976879, 5.8616e-08, 0.976879, -0.213793, 0, -1.0341, -4.21388)
+transform = Transform3D(0.9999999999999858, 6.135381937698054e-08, 5.673195317354972e-07, 5.673195239376914e-07, -0.2137932295166943, -0.97687894976951, 6.135381853368089e-08, 0.9768789497695313, -0.2137932295167253, 0, -1.0341, -4.21388)
 
 [node name="KinematicBody" type="CharacterBody3D" parent="Visual/VisualRoot/ship/HatchDown" index="0"]
 

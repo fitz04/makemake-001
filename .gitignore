@@ -40,3 +40,7 @@ Thumbs.db
 *.tmp
 *.bak
 *.old
+*.backup
+
+# Claude Code
+.claude/

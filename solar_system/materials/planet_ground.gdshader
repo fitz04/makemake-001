@@ -12,6 +12,22 @@ uniform sampler2D u_global_normalmap;// : hint_normal;
 uniform float u_mountain_height;
 uniform vec3 u_top_modulate : source_color = vec3(1.0);
 
+// Biome system
+uniform float u_planet_radius = 8000.0;
+uniform vec3 u_landing_basin_center = vec3(0.0, 0.0, 0.0);
+uniform float u_landing_basin_radius = 1200.0;
+uniform vec3 u_fire_ice_center = vec3(0.0, 0.0, -4500.0);  // FAR SOUTH 4500m
+uniform float u_fire_ice_radius = 1800.0;
+uniform float u_canyon_min_x = -5500.0;  // FAR WEST boundary
+uniform float u_canyon_max_x = -3000.0;  // Canyon east boundary
+uniform float u_canyon_min_z = -1500.0;  // Canyon north boundary (narrower)
+uniform float u_canyon_max_z = 1500.0;   // Canyon south boundary (narrower)
+uniform vec3 u_landing_basin_color : source_color = vec3(0.95, 0.90, 0.85);  // Bright cream (fresh methane ice)
+uniform vec3 u_cryo_plains_color : source_color = vec3(0.85, 0.75, 0.70);    // Light reddish-brown (main surface, tholin)
+uniform vec3 u_ore_highlands_color : source_color = vec3(0.75, 0.60, 0.50);  // Medium brown (mixed surface)
+uniform vec3 u_fire_ice_color : source_color = vec3(0.65, 0.55, 0.50);       // Dark brown (old tholin in crater)
+uniform vec3 u_canyon_color : source_color = vec3(0.50, 0.40, 0.35);         // Very dark brown (exposed old surface)
+
 // From Voxel Tools API
 // TODO Switch to instance uniforms when they work, see Godot issue #54897
 // instance uniform vec3 u_block_local_position = vec3(0.0);
@@ -27,6 +43,7 @@ varying float v_camera_distance;
 varying vec3 v_normal_model;
 
 varying vec3 v_vertex_pos_model;
+varying vec3 v_local_pos;  // For biome detection
 
 vec4 triplanar_texture(sampler2D p_sampler, vec3 p_weights, vec3 p_triplanar_pos) {
 	vec4 samp = vec4(0.0);
@@ -66,6 +83,7 @@ void vertex() {
 	v_normal_model = NORMAL;
 	v_planet_height = length(local_pos);
 	v_triplanar_uv = local_pos * 0.05;
+	v_local_pos = local_pos;  // Store for biome detection
 
 	vec3 wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec3 cam_pos = (INV_VIEW_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
@@ -126,7 +144,45 @@ void fragment() {
 	side_col = mix(side_col, far_side_col, far_factor);
 	side_norm = mix(side_norm, far_side_norm, far_factor);
 
-	ALBEDO = mix(side_col, top_col, topness);
+	// Biome detection - Priority order: Landing Basin > Fire-Ice > Canyon > Ore Highlands > Cryo Plains
+	float dist_to_landing = length(v_local_pos.xz - u_landing_basin_center.xz);
+	float dist_to_fire_ice = length(v_local_pos.xz - u_fire_ice_center.xz);
+	float height_from_surface = v_planet_height - u_planet_radius;
+
+	// Check if in canyon (rectangular area)
+	bool in_canyon = (v_local_pos.x > u_canyon_min_x && v_local_pos.x < u_canyon_max_x &&
+	                  v_local_pos.z > u_canyon_min_z && v_local_pos.z < u_canyon_max_z);
+
+	vec3 biome_color = u_cryo_plains_color;  // Default: Cryo Plains
+
+	// Priority 1: Landing Basin (1200m radius around spawn)
+	if (dist_to_landing < u_landing_basin_radius) {
+		float basin_blend = smoothstep(u_landing_basin_radius - 250.0, u_landing_basin_radius, dist_to_landing);
+		biome_color = mix(u_landing_basin_color, u_cryo_plains_color, basin_blend);
+	}
+	// Priority 2: Fire-Ice Basin (crater in the south)
+	else if (dist_to_fire_ice < u_fire_ice_radius) {
+		float crater_blend = smoothstep(u_fire_ice_radius - 400.0, u_fire_ice_radius, dist_to_fire_ice);
+		biome_color = mix(u_fire_ice_color, u_cryo_plains_color, crater_blend);
+	}
+	// Priority 3: Living Lode Canyon (western region)
+	else if (in_canyon) {
+		// Edge blending for smooth transitions
+		float edge_dist_x = min(v_local_pos.x - u_canyon_min_x, u_canyon_max_x - v_local_pos.x);
+		float edge_dist_z = min(v_local_pos.z - u_canyon_min_z, u_canyon_max_z - v_local_pos.z);
+		float edge_dist = min(edge_dist_x, edge_dist_z);
+		float canyon_blend = smoothstep(0.0, 250.0, edge_dist);
+		biome_color = mix(u_cryo_plains_color, u_canyon_color, canyon_blend);
+	}
+	// Priority 4: Ore Highlands (above 50m elevation)
+	else if (height_from_surface > 50.0) {
+		float highland_blend = smoothstep(30.0, 70.0, height_from_surface);
+		biome_color = mix(u_cryo_plains_color, u_ore_highlands_color, highland_blend);
+	}
+	// Default: Cryo Plains (already set)
+
+	vec3 base_albedo = mix(side_col, top_col, topness);
+	ALBEDO = base_albedo * biome_color;
 	NORMAL_MAP = mix(side_norm, top_norm, topness);
 	NORMAL = normal_view;
 	//ALBEDO = vec3(normal_model);

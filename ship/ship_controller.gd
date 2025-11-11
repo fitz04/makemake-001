@@ -172,4 +172,3 @@ func _process_dig_actions():
 				vt.channel = VoxelBuffer.CHANNEL_SDF
 				vt.mode = VoxelTool.MODE_REMOVE
 				vt.do_sphere(pos, sphere_size)
-

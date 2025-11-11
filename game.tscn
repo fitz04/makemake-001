@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://dx0qy8pg0q72b"]
+[gd_scene load_steps=18 format=3 uid="uid://dx0qy8pg0q72b"]
 
 [ext_resource type="Script" uid="uid://2n8mv4egtptg" path="res://solar_system/solar_system.gd" id="1_tcbv5"]
 [ext_resource type="Texture2D" uid="uid://b0s3fc7sjnlof" path="res://solar_system/space_background.png" id="2_06f30"]
@@ -8,7 +8,6 @@
 [ext_resource type="Texture2D" uid="uid://31ebse57lvhs" path="res://gui/crosshair.png" id="6_rc6j7"]
 [ext_resource type="PackedScene" path="res://waypoints/waypoint_hud.tscn" id="7_b4x6s"]
 [ext_resource type="AudioStream" uid="uid://bpacs3ufj22ps" path="res://sounds/ui_planet_hover.wav" id="8_tvaq7"]
-[ext_resource type="Script" uid="uid://c6aaj3kpm6i5l" path="res://addons/SIsilicon.vfx.lens flare/lens-flare.gd" id="9_w721i"]
 [ext_resource type="PackedScene" path="res://gui/mouse_capture.tscn" id="10_4n27f"]
 [ext_resource type="Script" uid="uid://bcmiylk5tdeet" path="res://gui/loading_screen.gd" id="11_vsdyb"]
 [ext_resource type="PackedScene" uid="uid://b1jp62h7crdt7" path="res://gui/pause_menu/pause_menu.tscn" id="12_cuwn3"]
@@ -26,8 +25,8 @@ sky_material = SubResource("PanoramaSkyMaterial_cmlyd")
 background_mode = 2
 sky = SubResource("1")
 ambient_light_color = Color(0.717647, 0.760784, 1, 1)
-ambient_light_sky_contribution = 0.98
-ambient_light_energy = 7.7
+ambient_light_sky_contribution = 0.88
+ambient_light_energy = 5.0
 glow_enabled = true
 glow_levels/5 = 0.0
 glow_levels/6 = 1.0

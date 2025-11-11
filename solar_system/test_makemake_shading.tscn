@@ -1,0 +1,63 @@
+[gd_scene load_steps=7 format=3 uid="uid://jcdv8v6rdvsk"]
+
+[ext_resource type="Material" uid="uid://c1mtyp8wn6gxe" path="res://solar_system/materials/planet_material_rocky.tres" id="1"]
+[ext_resource type="VoxelGeneratorGraph" uid="uid://b4umpxnew5cgx" path="res://solar_system/voxel_graph_planet_v4.tres" id="2"]
+
+[sub_resource type="VoxelMesherTransvoxel" id="1"]
+
+[sub_resource type="Environment" id="2"]
+background_mode = 1
+background_color = Color(0.0235294, 0.0235294, 0.0313726, 1)
+ambient_light_color = Color(0.15, 0.15, 0.18, 1)
+ambient_light_sky_contribution = 0.8
+ambient_light_energy = 0.5
+
+[sub_resource type="CameraAttributesPractical" id="6"]
+exposure_multiplier = 1.2
+
+[sub_resource type="SphereMesh" id="5"]
+radius = 200.0
+height = 400.0
+radial_segments = 32
+rings = 16
+
+[node name="TestMakemakeShading" type="Node3D"]
+
+[node name="Planet" type="VoxelLodTerrain" parent="."]
+generator = ExtResource("2")
+mesher = SubResource("1")
+view_distance = 2048
+voxel_bounds = AABB(-8192, -8192, -8192, 16384, 16384, 16384)
+lod_count = 7
+lod_distance = 100.0
+material = ExtResource("1")
+mesh_block_size = 32
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.170038, -0.0201907, 0.985231, 0, 0.99979, 0.020489, -0.985438, -0.0034839, 0.170002, 3502.13, 538.943, 0)
+light_color = Color(1, 0.98, 0.95, 1)
+light_energy = 0.8
+shadow_enabled = true
+directional_shadow_max_distance = 4000.0
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("2")
+camera_attributes = SubResource("6")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(0.6980654485973393, -0.2687525151204173, 0.6636841983135091, 0, 0.9268892775225784, 0.3753348734312769, -0.7160339583250193, -0.26200830679602993, 0.6470293793138625, 1383.0276992225772, 810.7853314562736, 942.3687832653527)
+current = true
+fov = 60.0
+near = 1.0
+far = 50000.0
+
+[node name="VoxelViewer" type="VoxelViewer" parent="Camera3D"]
+view_distance = 4096
+
+[node name="SpawnMarker" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8150, 0)
+
+[node name="ReferenceSphere" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 10000)
+visible = false
+mesh = SubResource("5")

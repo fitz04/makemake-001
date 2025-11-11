@@ -13,10 +13,10 @@ const ReferenceChangeInfo = preload("res://solar_system/reference_change_info.gd
 const STATE_LANDED = 0
 const STATE_FLYING = 1
 
-@export var linear_acceleration := 10.0
-@export var angular_acceleration := 1000.0
-@export var speed_cap_on_planet := 40.0
-@export var speed_cap_in_space := 400.0
+@export var linear_acceleration := 30.0  # Increased for faster forward/backward (was 10.0)
+@export var angular_acceleration := 500.0  # Keep rotation speed same
+@export var speed_cap_on_planet := 250.0  # Increased max speed on planet (was 40.0)
+@export var speed_cap_in_space := 1500.0  # Increased max speed in space (was 400.0)
 
 @onready var _visual_root : Node3D = $Visual/VisualRoot
 @onready var _controller : ShipController = $Controller
@@ -185,9 +185,17 @@ func _integrate_forces(state: PhysicsDirectBodyState3D):
 
 	var speed_cap := speed_cap_in_space_mod
 	
-	var motor := _move_cmd.z * forward * linear_acceleration_mod
-	state.apply_central_force(motor)
-
+	#var motor := _move_cmd.z * forward * linear_acceleration_mod
+	#state.apply_central_force(motor)
+	# _move_cmd의 3축(x: 좌우, y: 상하, z: 전후)을 모두 반영하여 힘을 계산합니다.
+	var motor_force := Vector3()
+	motor_force += _move_cmd.x * right   # 좌우 이동 (Strafe)
+	motor_force += _move_cmd.y * up     # 상승/하강 (Ascend/Descend)
+	motor_force += _move_cmd.z * forward # 전진/후진 (Forward/Backward)
+	
+	# 계산된 총 힘을 가속도와 곱하여 적용합니다.
+	state.apply_central_force(motor_force * linear_acceleration_mod)
+	
 	_turn_cmd.x = clampf(_turn_cmd.x, -1.0, 1.0)
 	_turn_cmd.y = clampf(_turn_cmd.y, -1.0, 1.0)
 	_turn_cmd.z = clampf(_turn_cmd.z, -1.0, 1.0)
@@ -252,4 +260,3 @@ func _integrate_forces(state: PhysicsDirectBodyState3D):
 
 func get_last_contacts_count() -> int:
 	return _last_contacts_count
-

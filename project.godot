@@ -23,6 +23,10 @@ DDD="*res://addons/zylann.debug_draw/debug_draw.gd"
 
 enabled=PackedStringArray("res://addons/zylann.atmosphere/tools/plugin.cfg")
 
+[physics]
+
+3d/physics_engine="Jolt Physics"
+
 [rendering]
 
 environment/default_clear_color=Color(0, 0, 0, 1)

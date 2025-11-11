@@ -248,6 +248,30 @@ static func _setup_rocky_planet(body: StellarBody, root: Node3D, settings: Setti
 	elif body.name == "Makemake":
 		# Ice dwarf planet - bright grayish-white surface
 		mat.set_shader_parameter(&"u_top_modulate", Color(0.9, 0.95, 1.0))
+
+		# Biome system setup
+		mat.set_shader_parameter(&"u_planet_radius", body.radius)
+
+		# Landing Basin - spawn area (center of planet)
+		mat.set_shader_parameter(&"u_landing_basin_center", Vector3(0, 0, 0))
+		mat.set_shader_parameter(&"u_landing_basin_radius", 1200.0)
+
+		# Fire-Ice Basin - FAR SOUTH crater (well separated)
+		mat.set_shader_parameter(&"u_fire_ice_center", Vector3(0, 0, -4500))
+		mat.set_shader_parameter(&"u_fire_ice_radius", 1800.0)
+
+		# Living Lode Canyon - FAR WEST ravine (well separated)
+		mat.set_shader_parameter(&"u_canyon_min_x", -5500.0)
+		mat.set_shader_parameter(&"u_canyon_max_x", -3000.0)
+		mat.set_shader_parameter(&"u_canyon_min_z", -1500.0)
+		mat.set_shader_parameter(&"u_canyon_max_z", 1500.0)
+
+		# Biome colors - Realistic Makemake surface (tholin + methane ice)
+		mat.set_shader_parameter(&"u_landing_basin_color", Color(0.95, 0.90, 0.85))  # Bright cream (fresh methane ice)
+		mat.set_shader_parameter(&"u_cryo_plains_color", Color(0.85, 0.75, 0.70))    # Light reddish-brown (main surface)
+		mat.set_shader_parameter(&"u_ore_highlands_color", Color(0.75, 0.60, 0.50))  # Medium brown (mixed surface)
+		mat.set_shader_parameter(&"u_fire_ice_color", Color(0.65, 0.55, 0.50))       # Dark brown (old tholin in crater)
+		mat.set_shader_parameter(&"u_canyon_color", Color(0.50, 0.40, 0.35))         # Very dark brown (exposed old surface)
 	
 	var generator : VoxelGeneratorGraph = BasePlanetVoxelGraph.duplicate(true)
 	var graph : VoxelGraphFunction = generator.get_main_function()
@@ -255,20 +279,31 @@ static func _setup_rocky_planet(body: StellarBody, root: Node3D, settings: Setti
 	# TODO Need an API that doesnt suck
 	var radius_param_id := 0
 	graph.set_node_param(sphere_node_id, radius_param_id, body.radius)
+
+	# Complex terrain setup (restored from backup)
 	var ravine_blend_noise_node_id := graph.find_node_by_name("ravine_blend_noise")
 	var noise_param_id := 0
-	var ravine_blend_noise = graph.get_node_param(ravine_blend_noise_node_id, noise_param_id)
-	ravine_blend_noise.seed = body.name.hash()
+	if ravine_blend_noise_node_id != -1:
+		var ravine_blend_noise = graph.get_node_param(ravine_blend_noise_node_id, noise_param_id)
+		if ravine_blend_noise != null:
+			ravine_blend_noise.seed = body.name.hash()
+
 	var cave_height_node_id := graph.find_node_by_name("cave_height_subtract")
-	graph.set_node_default_input(cave_height_node_id, 1, body.radius - 100.0)
+	if cave_height_node_id != -1:
+		graph.set_node_default_input(cave_height_node_id, 1, body.radius - 100.0)
+
 	var cave_noise_node_id := graph.find_node_by_name("cave_noise")
-	var cave_noise = graph.get_node_param(cave_noise_node_id, noise_param_id)
-	cave_noise.period = 900.0 / body.radius
+	if cave_noise_node_id != -1:
+		var cave_noise = graph.get_node_param(cave_noise_node_id, noise_param_id)
+		if cave_noise != null:
+			cave_noise.period = 900.0 / body.radius
+
 	var ravine_depth_multiplier_node_id := graph.find_node_by_name("ravine_depth_multiplier")
-	var ravine_depth : float = graph.get_node_default_input(ravine_depth_multiplier_node_id, 1)
-	if settings.world_scale_x10:
-		ravine_depth *= LARGE_SCALE
-	graph.set_node_default_input(ravine_depth_multiplier_node_id, 1, ravine_depth)
+	if ravine_depth_multiplier_node_id != -1:
+		var ravine_depth : float = graph.get_node_default_input(ravine_depth_multiplier_node_id, 1)
+		if settings.world_scale_x10:
+			ravine_depth *= LARGE_SCALE
+	# graph.set_node_default_input(ravine_depth_multiplier_node_id, 1, ravine_depth)
 	# var cave_height_multiplier_node_id = generator.find_node_by_name("cave_height_multiplier")
 	# generator.set_node_default_input(cave_height_multiplier_node_id, 1, 0.015)
 	generator.compile()
