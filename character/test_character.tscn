@@ -47,10 +47,11 @@ environment = SubResource("5")
 
 [node name="Camera" type="Camera3D" parent="."]
 transform = Transform3D(0.998932, -0.0340342, 0.0312436, 0, 0.676261, 0.736663, -0.0462005, -0.735876, 0.675539, 0.629355, 66.9992, 16.362)
-visible = false
 
 [node name="Camera2" parent="." instance=ExtResource("3")]
 distance_to_target = 4.0
 initial_target = NodePath("../Character/Head")
 
 [node name="MouseCapture" parent="." instance=ExtResource("4")]
+layout_mode = 3
+anchors_preset = 0

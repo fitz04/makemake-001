@@ -9,11 +9,13 @@
 extends CharacterBody3D
 
 const VERTICAL_CORRECTION_SPEED = PI
-const MOVE_ACCELERATION = 75.0
-const MOVE_DAMP_FACTOR = 0.2
 const JUMP_COOLDOWN_TIME = 0.3
-const JUMP_SPEED = 10.0
-const GRAVITY = 5.0
+
+# Default physics constants - can be overridden by settings
+var MOVE_ACCELERATION := 175.0
+var MOVE_DAMP_FACTOR := 0.2
+var JUMP_SPEED := 10.0
+var GRAVITY := 5.0
 
 signal jumped
 
@@ -54,6 +56,16 @@ func get_head() -> Node3D:
 
 
 func _physics_process(delta : float):
+	# Apply runtime settings if available (from Settings system)
+	if has_meta("movement_acceleration"):
+		MOVE_ACCELERATION = get_meta("movement_acceleration")
+	if has_meta("movement_damping"):
+		MOVE_DAMP_FACTOR = get_meta("movement_damping")
+	if has_meta("jump_speed"):
+		JUMP_SPEED = get_meta("jump_speed")
+	if has_meta("gravity"):
+		GRAVITY = get_meta("gravity")
+
 	var gtrans := global_transform
 	var current_up := gtrans.basis.y
 	var planet_up := _planet_up

@@ -26,6 +26,15 @@ const Binding = preload("res://binding.gd")
 @onready var _antialias_selector : OptionButton = \
 	$PC/MC/VB/TabContainer/Graphics/GC/AntialiasSelector
 
+@onready var _movement_accel_slider : Slider = $PC/MC/VB/TabContainer/Character/GC/HB1/MovementAccel
+@onready var _movement_accel_value_label : Label = $PC/MC/VB/TabContainer/Character/GC/HB1/MovementAccelValue
+@onready var _jump_speed_slider : Slider = $PC/MC/VB/TabContainer/Character/GC/HB2/JumpSpeed
+@onready var _jump_speed_value_label : Label = $PC/MC/VB/TabContainer/Character/GC/HB2/JumpSpeedValue
+@onready var _gravity_slider : Slider = $PC/MC/VB/TabContainer/Character/GC/HB3/Gravity
+@onready var _gravity_value_label : Label = $PC/MC/VB/TabContainer/Character/GC/HB3/GravityValue
+@onready var _damping_slider : Slider = $PC/MC/VB/TabContainer/Character/GC/HB4/Damping
+@onready var _damping_value_label : Label = $PC/MC/VB/TabContainer/Character/GC/HB4/DampingValue
+
 
 var _settings : Settings
 var _updating_gui := false
@@ -60,7 +69,19 @@ func set_settings(s: Settings):
 	_bindings.append(Binding.create(_settings, "wireframe", _wireframe_checkbox))
 	_bindings.append(Binding.create(_settings, "clouds_quality", _clouds_selector))
 	_bindings.append(Binding.create(_settings, "antialias", _antialias_selector))
-	
+
+	# Character physics bindings
+	_bindings.append(Binding.create(_settings, "movement_acceleration", _movement_accel_slider))
+	_bindings.append(Binding.create(_settings, "jump_speed", _jump_speed_slider))
+	_bindings.append(Binding.create(_settings, "gravity", _gravity_slider))
+	_bindings.append(Binding.create(_settings, "movement_damping", _damping_slider))
+
+	# Connect sliders to update value labels
+	_movement_accel_slider.value_changed.connect(_on_movement_accel_changed)
+	_jump_speed_slider.value_changed.connect(_on_jump_speed_changed)
+	_gravity_slider.value_changed.connect(_on_gravity_changed)
+	_damping_slider.value_changed.connect(_on_damping_changed)
+
 	_update_ui()
 
 
@@ -68,6 +89,18 @@ func _update_ui():
 	for binding in _bindings:
 		binding.update_ui()
 
+
+func _on_movement_accel_changed(value: float):
+	_movement_accel_value_label.text = "%.1f" % value
+
+func _on_jump_speed_changed(value: float):
+	_jump_speed_value_label.text = "%.1f" % value
+
+func _on_gravity_changed(value: float):
+	_gravity_value_label.text = "%.1f" % value
+
+func _on_damping_changed(value: float):
+	_damping_value_label.text = "%.2f" % value
 
 func _on_Close_pressed():
 	hide()

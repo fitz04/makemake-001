@@ -280,6 +280,44 @@ func _process_setting_changes():
 			if body.atmosphere != null:
 				SolarSystemSetup.update_atmosphere_settings(body, _settings)
 
+	# Update character physics settings
+	_apply_character_settings()
+
+
+func _apply_character_settings():
+	# Apply character physics settings if player is a character
+	if _player == null:
+		return
+
+	# Check if player is a character (has _head node, indicating it's a character instance)
+	if not _player.has_node("Head"):
+		return  # Player is ship or other object, not a character
+
+	# Access the character's internal physics constants via reflection
+	# These are defined in addons/zylann.3d_basics/character/character.gd
+	var char = _player
+
+	# Apply settings - we use object property assignment to override the private behavior
+	# Since the constants are used in _physics_process, we modify the values dynamically
+	# by creating wrapper properties
+
+	# Note: We store settings in custom properties that the character can access
+	# The character class constants are compile-time, so we use a different approach:
+	# We store the values and the character will use them via get_character_setting()
+
+	# For now, we'll set properties on the character object itself
+	if not char.has_meta("movement_acceleration"):
+		char.set_meta("movement_acceleration", _settings.movement_acceleration)
+		char.set_meta("jump_speed", _settings.jump_speed)
+		char.set_meta("gravity", _settings.gravity)
+		char.set_meta("movement_damping", _settings.movement_damping)
+	else:
+		# Update existing meta values
+		char.set_meta("movement_acceleration", _settings.movement_acceleration)
+		char.set_meta("jump_speed", _settings.jump_speed)
+		char.set_meta("gravity", _settings.gravity)
+		char.set_meta("movement_damping", _settings.movement_damping)
+
 
 func _process_debug():
 	for body in _bodies:

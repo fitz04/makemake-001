@@ -14,7 +14,7 @@ const Waypoint = preload("res://waypoints/waypoint.gd")
 const WaypointScene = preload("../waypoints/waypoint.tscn")
 
 const VERTICAL_CORRECTION_SPEED = PI
-const MOVE_ACCELERATION = 40.0
+const MOVE_ACCELERATION = 80.0
 const MOVE_DAMP_FACTOR = 0.1
 const JUMP_COOLDOWN_TIME = 0.3
 const JUMP_SPEED = 8.0
@@ -167,7 +167,7 @@ func _unhandled_input(event: InputEvent):
 					body.jump()
 				KEY_E:
 					_interact_cmd = true
-				KEY_F:
+				KEY_F: 
 					_flashlight.visible = not _flashlight.visible
 					if _flashlight.visible:
 						_audio.play_light_on()
