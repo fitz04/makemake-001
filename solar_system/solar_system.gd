@@ -285,38 +285,41 @@ func _process_setting_changes():
 
 
 func _apply_character_settings():
-	# Apply character physics settings if player is a character
+	# Apply character physics settings to all character instances in the scene
 	if _player == null:
 		return
 
-	# Check if player is a character (has _head node, indicating it's a character instance)
-	if not _player.has_node("Head"):
-		return  # Player is ship or other object, not a character
+	# Try to find character in multiple ways
+	var char = null
 
-	# Access the character's internal physics constants via reflection
-	# These are defined in addons/zylann.3d_basics/character/character.gd
-	var char = _player
+	# Case 1: Player is the character directly
+	if _player.has_node("Head"):
+		char = _player
+	# Case 2: Find "Character" node in the scene tree (when player exits ship)
+	# Characters are added directly to solar_system, not inside the ship
+	elif has_node("Character"):
+		char = get_node("Character")
+	# Case 3: Check for alternative paths (ship.gd might store character reference)
+	elif _player.has_method("get_character"):
+		char = _player.get_character()
 
-	# Apply settings - we use object property assignment to override the private behavior
-	# Since the constants are used in _physics_process, we modify the values dynamically
-	# by creating wrapper properties
+	# If we still don't have a character, search the entire children list
+	if char == null:
+		for child in get_children():
+			if child.has_node("Head"):
+				char = child
+				break
 
-	# Note: We store settings in custom properties that the character can access
-	# The character class constants are compile-time, so we use a different approach:
-	# We store the values and the character will use them via get_character_setting()
+	# No character found, nothing to do
+	if char == null:
+		return
 
-	# For now, we'll set properties on the character object itself
-	if not char.has_meta("movement_acceleration"):
-		char.set_meta("movement_acceleration", _settings.movement_acceleration)
-		char.set_meta("jump_speed", _settings.jump_speed)
-		char.set_meta("gravity", _settings.gravity)
-		char.set_meta("movement_damping", _settings.movement_damping)
-	else:
-		# Update existing meta values
-		char.set_meta("movement_acceleration", _settings.movement_acceleration)
-		char.set_meta("jump_speed", _settings.jump_speed)
-		char.set_meta("gravity", _settings.gravity)
-		char.set_meta("movement_damping", _settings.movement_damping)
+	# Apply settings to the character via metadata
+	# These will be read in character.gd _physics_process()
+	char.set_meta("movement_acceleration", _settings.movement_acceleration)
+	char.set_meta("jump_speed", _settings.jump_speed)
+	char.set_meta("gravity", _settings.gravity)
+	char.set_meta("movement_damping", _settings.movement_damping)
 
 
 func _process_debug():
