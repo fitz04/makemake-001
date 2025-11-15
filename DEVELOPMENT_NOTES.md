@@ -14,27 +14,29 @@ Godot 4.5 기반 Makemake 왜행성 탐사 게임. Voxel Terrain 플러그인을
 
 ## 주요 이슈 및 발견사항
 
-### 1. 지형 크기 동기화 이슈 ⚠️
+### 1. 지형 크기 동기화 이슈 ✓ 해결됨
 
-**문제:** `graph.set_node_param()`이 지형 반지름 설정에 작동하지 않음
-- 위치: [solar_system_setup.gd:252](solar_system/solar_system_setup.gd#L252)
-- 영향: 두 파일 간 지형 크기를 수동으로 동기화해야 함
+**원인:** Voxel Tools 1.5+에서 API 변경
+- SdfSphere의 radius가 **parameter에서 input으로 변경**됨
+- 이전: `set_node_param(id, 0, radius)` (작동 안 함)
+- 현재: `set_node_default_input(id, 3, radius)` (올바른 방법)
 
-**일치해야 하는 파일들:**
-- `solar_system_setup.gd` 73번째 줄: `planet.radius = 8000.0`
-- `voxel_graph_planet_v4.tres` 205번째 줄: `"radius": 8000.0`
+**해결 방법:** [solar_system_setup.gd:365](solar_system/solar_system_setup.gd#L365)
+```gdscript
+# radius는 SdfSphere의 input index 3에 위치
+graph.set_node_default_input(sphere_node_id, 3, body.radius)
+```
 
-**불일치 시 증상:**
-- 우주선이 잘못된 높이에 스폰됨
-- 플레이어가 지형을 뚫고 떨어지거나 우주에 스폰됨
-- 충돌 감지 실패
+**결과:**
+- ✅ `planet.radius` 값만 변경하면 지형 크기 자동 동기화
+- ✅ voxel_graph_planet_v5.tres 수동 편집 불필요
+- ✅ 우주선 스폰 위치가 항상 지형 표면 위 150m에 정확히 배치
+- ✅ radius 값에 관계없이 동적으로 작동
 
-**임시 해결책:**
-1. solar_system_setup.gd에서 `planet.radius` 변경
-2. voxel_graph_planet_v4.tres 205번째 줄 수동 편집
-3. 두 값이 정확히 일치하는지 확인
-
-**TODO:** `graph.set_node_param()`이 반지름 변경을 적용하지 못하는 이유 조사
+**테스트 결과:**
+- radius = 8000: 정상 작동
+- radius > 8000: 지형 크기 증가, 우주선 위치 동기화
+- radius < 8000: 지형 크기 감소, 우주선 위치 동기화
 
 ---
 

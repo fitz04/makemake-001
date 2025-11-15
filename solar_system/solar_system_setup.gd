@@ -67,10 +67,9 @@ static func create_solar_system_data(settings: Settings) -> Array[StellarBody]:
 	var planet := StellarBody.new()
 	planet.name = "Makemake"
 	planet.type = StellarBody.TYPE_ROCKY
-	# WARNING: This value determines SPAWN POSITION only!
-	# Actual terrain size is set in voxel_graph_planet_v5.tres
-	# BOTH VALUES MUST MATCH or spawn will be in wrong location!
-	planet.radius = 8000.0  # 8km radius - MUST MATCH .tres file!
+	# Planet radius - automatically synced to voxel terrain via set_node_default_input()
+	# This value determines both spawn position AND actual terrain size
+	planet.radius = 8000.0  # Change this value to resize the entire planet
 	planet.parent_id = 0
 	planet.distance_to_parent = 120000.0  # Far outer solar system
 	planet.self_revolution_time = 15.0 * 60.0
@@ -361,9 +360,9 @@ static func _setup_rocky_planet(body: StellarBody, root: Node3D, settings: Setti
 
 	var graph : VoxelGraphFunction = generator.get_main_function()
 	var sphere_node_id := graph.find_node_by_name("planet_sphere")
-	# TODO Need an API that doesnt suck
-	var radius_param_id := 0
-	graph.set_node_param(sphere_node_id, radius_param_id, body.radius)
+	# Set planet sphere radius (input index 3 in Voxel Tools 1.5+)
+	# Dynamically syncs terrain size with body.radius value
+	graph.set_node_default_input(sphere_node_id, 3, body.radius)
 
 	# Complex terrain setup (restored from backup)
 	var ravine_blend_noise_node_id := graph.find_node_by_name("ravine_blend_noise")
