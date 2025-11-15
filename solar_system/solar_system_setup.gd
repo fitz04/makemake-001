@@ -40,7 +40,7 @@ const Pebble1Mesh = preload("res://props/pebbles/pebble1.obj")
 const Rock1Mesh = preload("res://props/rocks/rock1.obj")
 const BigRock1Mesh = preload("res://props/big_rocks/big_rock1.obj")
 
-const BasePlanetVoxelGraph = preload("./voxel_graph_planet_v4.tres")
+const BasePlanetVoxelGraph = preload("./voxel_graph_planet_v5.tres")
 
 const EarthDaySound = preload("res://sounds/earth_surface_day.ogg")
 const EarthNightSound = preload("res://sounds/earth_surface_night.ogg")
@@ -68,9 +68,8 @@ static func create_solar_system_data(settings: Settings) -> Array[StellarBody]:
 	planet.name = "Makemake"
 	planet.type = StellarBody.TYPE_ROCKY
 	# WARNING: This value determines SPAWN POSITION only!
-	# Actual terrain size is set in voxel_graph_planet_v4.tres (line 205)
+	# Actual terrain size is set in voxel_graph_planet_v5.tres
 	# BOTH VALUES MUST MATCH or spawn will be in wrong location!
-	# TODO: Fix graph.set_node_param() not working (line ~253)
 	planet.radius = 8000.0  # 8km radius - MUST MATCH .tres file!
 	planet.parent_id = 0
 	planet.distance_to_parent = 120000.0  # Far outer solar system
@@ -274,8 +273,94 @@ static func _setup_rocky_planet(body: StellarBody, root: Node3D, settings: Setti
 		mat.set_shader_parameter(&"u_canyon_color", Color(0.50, 0.40, 0.35))         # Very dark brown (exposed old surface)
 	
 	var generator : VoxelGeneratorGraph = BasePlanetVoxelGraph.duplicate(true)
+
+	# Add craters to the terrain - 6 well-spaced craters with varied sizes
+	var crater_gen = CraterGenerator.new()
+	var craters = []
+
+	# Crater 1: Landing Basin at spawn (largest)
+	var crater1 = CraterGenerator.CraterDef.new(
+		Vector3(0, 0, 0),
+		500.0,   # 500m radius
+		100.0,   # 100m deep
+		15.0     # 25m rim
+	)
+	craters.append(crater1)
+	print("Crater 0: Landing Basin (0, 0) r=500m")
+
+	# Crater 2: North (large)
+	var crater2 = CraterGenerator.CraterDef.new(
+		Vector3(0, 0, 2000),
+		400.0,   # 400m radius
+		80.0,    # 80m deep
+		20.0     # 20m rim
+	)
+	craters.append(crater2)
+	print("Crater 1: North (0, 2000) r=400m")
+
+	# Crater 3: South (large)
+	var crater3 = CraterGenerator.CraterDef.new(
+		Vector3(0, 0, -2000),
+		400.0,
+		80.0,
+		20.0
+	)
+	craters.append(crater3)
+	print("Crater 2: South (0, -2000) r=400m")
+
+	# Crater 4: East (medium)
+	var crater4 = CraterGenerator.CraterDef.new(
+		Vector3(2000, 0, 0),
+		350.0,   # 350m radius
+		70.0,    # 70m deep
+		18.0     # 18m rim
+	)
+	craters.append(crater4)
+	print("Crater 3: East (2000, 0) r=350m")
+
+	# Crater 5: West (medium)
+	var crater5 = CraterGenerator.CraterDef.new(
+		Vector3(-2000, 0, 0),
+		350.0,
+		70.0,
+		18.0
+	)
+	craters.append(crater5)
+	print("Crater 4: West (-2000, 0) r=350m")
+
+	# Crater 6: Northeast (smaller)
+	var crater6 = CraterGenerator.CraterDef.new(
+		Vector3(1400, 0, 1400),
+		300.0,   # 300m radius
+		60.0,    # 60m deep
+		15.0     # 15m rim
+	)
+	craters.append(crater6)
+	print("Crater 5: Northeast (1400, 1400) r=300m")
+
+	crater_gen.add_craters_to_graph(generator, craters)
+
+	# Pass crater data to shader for dust rendering
+	var crater_centers = PackedVector3Array()
+	var crater_radii = PackedFloat32Array()
+	for crater in craters:
+		crater_centers.append(crater.center)
+		crater_radii.append(crater.radius)
+
+	# Pad arrays to size 10 (shader expects fixed array size)
+	while crater_centers.size() < 10:
+		crater_centers.append(Vector3.ZERO)
+		crater_radii.append(0.0)
+
+	mat.set_shader_parameter("u_crater_count", craters.size())
+	mat.set_shader_parameter("u_crater_centers", crater_centers)
+	mat.set_shader_parameter("u_crater_radii", crater_radii)
+
+	# Add dust fog volumes to craters
+	_add_crater_dust_volumes(body, root, craters)
+
 	var graph : VoxelGraphFunction = generator.get_main_function()
-	var sphere_node_id := graph.find_node_by_name("sphere")
+	var sphere_node_id := graph.find_node_by_name("planet_sphere")
 	# TODO Need an API that doesnt suck
 	var radius_param_id := 0
 	graph.set_node_param(sphere_node_id, radius_param_id, body.radius)
@@ -300,9 +385,11 @@ static func _setup_rocky_planet(body: StellarBody, root: Node3D, settings: Setti
 
 	var ravine_depth_multiplier_node_id := graph.find_node_by_name("ravine_depth_multiplier")
 	if ravine_depth_multiplier_node_id != -1:
-		var ravine_depth : float = graph.get_node_default_input(ravine_depth_multiplier_node_id, 1)
-		if settings.world_scale_x10:
-			ravine_depth *= LARGE_SCALE
+		var ravine_depth_value = graph.get_node_default_input(ravine_depth_multiplier_node_id, 1)
+		if ravine_depth_value != null:
+			var ravine_depth : float = ravine_depth_value
+			if settings.world_scale_x10:
+				ravine_depth *= LARGE_SCALE
 	# graph.set_node_default_input(ravine_depth_multiplier_node_id, 1, ravine_depth)
 	# var cave_height_multiplier_node_id = generator.find_node_by_name("cave_height_multiplier")
 	# generator.set_node_default_input(cave_height_multiplier_node_id, 1, 0.015)
@@ -339,7 +426,7 @@ static func _setup_rocky_planet(body: StellarBody, root: Node3D, settings: Setti
 
 	var volume := VoxelLodTerrain.new()
 	volume.lod_count = 7 + extra_lods
-	volume.lod_distance = 60.0
+	volume.lod_distance = 80.0  # Increased from 60 to reduce LOD transitions
 	volume.collision_lod_count = 2
 	volume.generator = generator
 	volume.stream = stream
@@ -348,12 +435,13 @@ static func _setup_rocky_planet(body: StellarBody, root: Node3D, settings: Setti
 		view_distance *= LARGE_SCALE
 	volume.view_distance = view_distance
 	volume.voxel_bounds = AABB(Vector3(-pot, -pot, -pot), Vector3(2 * pot, 2 * pot, 2 * pot))
-	volume.lod_fade_duration = 0.3
+	volume.lod_fade_duration = 0.5  # Increased from 0.3 for smoother transitions
 	volume.threaded_update_enabled = true
 	# Keep all edited blocks loaded. Leaving this off enables data streaming, but it is slower
 	volume.full_load_mode_enabled = true
-	
-	volume.normalmap_enabled = true
+
+	# Disable normalmap temporarily - causes chunk seams and artifacts with craters
+	volume.normalmap_enabled = false
 	volume.normalmap_tile_resolution_min = 4
 	volume.normalmap_tile_resolution_max = 8
 	volume.normalmap_begin_lod_index = 2
@@ -515,3 +603,39 @@ static func setup_stellar_body(body: StellarBody, parent: Node,
 		_setup_atmosphere(body, root, settings)
 	
 	return sun_light
+
+
+## Add dust fog volumes to crater areas for atmospheric effect
+static func _add_crater_dust_volumes(body: StellarBody, root: Node3D, craters: Array) -> void:
+	print("Adding dust fog volumes to ", craters.size(), " craters")
+
+	for i in range(craters.size()):
+		var crater = craters[i]
+
+		# Create FogVolume node
+		var fog_volume = FogVolume.new()
+		fog_volume.name = "CraterDust_%d" % i
+
+		# Size: cover crater area with some height (FogVolume is always box-shaped in Godot 4)
+		var box_size = Vector3(
+			crater.radius * 2.2,  # Wider than crater
+			60.0,                 # 60m tall dust cloud
+			crater.radius * 2.2
+		)
+		fog_volume.size = box_size
+
+		# Create FogMaterial with dust properties
+		var fog_material = FogMaterial.new()
+		fog_material.density = 0.15  # Subtle - not too thick
+		fog_material.albedo = Color(0.75, 0.70, 0.60)  # Match crater dust color
+		fog_material.emission = Color(0.05, 0.05, 0.05)  # Very subtle glow
+		fog_volume.material = fog_material
+
+		# Position: crater center + height offset (fog floats above ground)
+		var world_pos = crater.center + Vector3(0, body.radius + 30, 0)  # 30m above surface
+		fog_volume.position = world_pos
+
+		# Add to planet's root node
+		root.add_child(fog_volume)
+
+		print("  Added dust volume at ", crater.center, " (world: ", world_pos, ")")

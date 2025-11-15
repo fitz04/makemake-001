@@ -456,6 +456,667 @@ print("Spawning ship at ", spawn_pos, spawn_height, " on Makemake surface")
 
 ---
 
-**최종 업데이트:** 2025-11-09
+---
+
+## 크레이터 생성 시스템 (2025-01-12) ✓
+
+### 개요
+
+동적 크레이터 생성 시스템을 개발하여 수십~수백 개의 크레이터를 프로그래밍 방식으로 추가할 수 있게 되었습니다.
+
+### 생성된 파일
+
+1. **[voxel_graph_planet_v5.tres](solar_system/voxel_graph_planet_v5.tres)** - 깨끗한 새 베이스 지형
+   - 기본 sphere + 단순 노이즈
+   - 크레이터는 동적으로 추가됨
+   - v4를 대체하는 새로운 시작점
+
+2. **[crater_generator.gd](solar_system/crater_generator.gd)** - 크레이터 생성 유틸리티
+   - CraterGenerator 클래스
+   - CraterDef 내부 클래스 (크레이터 정의)
+   - 자동 노드 생성 및 연결
+
+3. **[CRATER_SYSTEM_GUIDE.md](CRATER_SYSTEM_GUIDE.md)** - 완전한 가이드
+   - 사용법 및 예제
+   - 파라미터 설명
+   - 커스터마이징 방법
+   - 성능 최적화 팁
+
+4. **[test_crater_system.gd](solar_system/test_crater_system.gd)** - 테스트 스크립트
+   - 기본 크레이터 테스트
+   - 랜덤 크레이터 생성
+   - 지역별 클러스터
+
+### 크레이터 구조
+
+각 크레이터는 10개 노드로 구성:
+
+```
+[거리 계산] 5개 노드
+Input X/Z → Offset → Square → Add → Sqrt = Distance
+
+[보울 (Bowl)] 2개 노드
+Distance → Smoothstep → Multiply(depth)
+
+[림 (Rim)] 2개 노드
+Distance → Smoothstep → Multiply(height)
+
+[합성] 2개 노드
+Terrain + Bowl → + Rim
+```
+
+### 기본 사용법
+
+```gdscript
+# 1. 베이스 그래프 로드
+var graph = load("res://solar_system/voxel_graph_planet_v5.tres")
+
+# 2. 크레이터 생성기 초기화
+var crater_gen = CraterGenerator.new()
+
+# 3. 크레이터 정의
+var craters = [
+    CraterGenerator.CraterDef.new(
+        Vector3(0, 0, 0),    # 중심
+        1200.0,              # 반지름
+        250.0,               # 깊이
+        45.0                 # 림 높이
+    )
+]
+
+# 4. 그래프에 추가
+crater_gen.add_craters_to_graph(graph, craters)
+
+# 5. 적용
+voxel_terrain.generator = graph
+```
+
+### 크레이터 파라미터
+
+**필수:**
+- `center`: Vector3 - 크레이터 중심 위치 (Y는 보통 0)
+- `radius`: float - 외곽 반지름 (효과 종료 지점)
+- `depth`: float - 크레이터 깊이 (양수로 입력, 자동 음수 변환)
+- `rim_height`: float - 가장자리 융기 높이
+
+**선택 (고급 조정):**
+- `bowl_flat_radius`: float - 평평한 바닥 크기 (기본: radius × 0.5)
+- `rim_start_radius`: float - 림 시작 지점 (기본: radius × 0.83)
+- `rim_end_radius`: float - 림 끝 지점 (기본: radius × 1.08)
+
+### 크레이터 크기 가이드
+
+| 분류 | 반지름 | 깊이 | 림 높이 | 용도 |
+|-----|--------|------|---------|------|
+| 소형 | 100-300m | 20-50m | 5-15m | 작은 충돌흔 |
+| 중형 | 300-800m | 50-150m | 15-30m | 일반 크레이터 |
+| 대형 | 800-2000m | 150-300m | 30-60m | 주요 랜드마크 |
+| 거대 | 2000m+ | 300m+ | 60m+ | 충돌 분지 |
+
+### 랜덤 크레이터 생성 예제
+
+```gdscript
+func generate_random_craters(count: int, min_radius: float, max_radius: float) -> Array:
+    var craters = []
+    var planet_radius = 7000.0
+
+    for i in range(count):
+        var angle = randf() * TAU
+        var distance = randf() * planet_radius
+        var pos = Vector3(cos(angle) * distance, 0, sin(angle) * distance)
+
+        var radius = randf_range(min_radius, max_radius)
+        var depth = radius * randf_range(0.2, 0.3)
+        var rim_height = radius * randf_range(0.03, 0.06)
+
+        craters.append(CraterGenerator.CraterDef.new(pos, radius, depth, rim_height))
+
+    return craters
+```
+
+### 성능
+
+**오해**: 노드가 많으면 느리다
+**진실**: 노드 수는 런타임 성능과 무관. 그래프는 컴파일되어 최적화됨
+
+**실제 병목:**
+1. 노이즈 샘플링 (가장 비쌈)
+2. 복셀당 계산 복잡도
+3. 텍스처 샘플링
+4. 분기문 (if/else)
+
+**권장:**
+- 크레이터 50-100개: 전혀 문제없음
+- 크레이터 100개 = 1000개 노드 = 여전히 괜찮음
+- 노이즈 octave를 8 이하로 유지
+
+### 커스터마이징 방향
+
+#### 1. 크레이터 주변 규산 먼지
+쉐이더에서 크레이터 거리를 이용:
+```glsl
+uniform vec3 u_crater_centers[10];
+uniform float u_crater_radii[10];
+
+float min_dist = 99999.0;
+for (int i = 0; i < crater_count; i++) {
+    float dist = length(v_local_pos.xz - u_crater_centers[i].xz);
+    min_dist = min(min_dist, dist / u_crater_radii[i]);
+}
+
+float dust = smoothstep(1.5, 0.8, min_dist);
+ALBEDO = mix(ALBEDO, dust_color, dust * 0.3);
+```
+
+#### 2. 크레이터 나이/침식
+```gdscript
+# 새 크레이터 - 날카롭고 깊음
+var fresh = CraterGenerator.CraterDef.new(pos, 800, 200, 40)
+fresh.bowl_flat_radius = 400
+
+# 오래된 크레이터 - 완만하고 얕음
+var old = CraterGenerator.CraterDef.new(pos, 800, 120, 15)
+old.bowl_flat_radius = 600
+```
+
+#### 3. 크레이터별 바이옴 색상
+```glsl
+uniform vec3 u_crater_colors[10];
+
+for (int i = 0; i < crater_count; i++) {
+    float dist = length(v_local_pos.xz - u_crater_centers[i].xz);
+    if (dist < u_crater_radii[i]) {
+        float blend = smoothstep(u_crater_radii[i] - 200.0, u_crater_radii[i], dist);
+        biome_color = mix(u_crater_colors[i], biome_color, blend);
+    }
+}
+```
+
+#### 4. 불규칙한 크레이터 (타원형)
+X와 Z 방향에 다른 스케일 적용하여 타원형 생성 가능
+
+#### 5. 크레이터 겹침 자연스럽게
+```gdscript
+# Add 대신 Min 사용
+graph.add_node(combined_id, "Min", ...)
+
+# 또는 SdfSmoothUnion
+graph.add_node(combined_id, "SdfSmoothUnion", ...)
+graph.set_node_param(combined_id, 2, 50.0)  # smoothness
+```
+
+### 알려진 제한사항
+
+1. 완벽한 원형 크레이터만 생성 (불규칙 형태는 노이즈 추가 필요)
+2. 현재는 Add로 단순 합성 (겹침 시 깊이 누적)
+3. 2D 투영 (구면 좌표계 미사용)
+
+### 향후 개선
+
+- [ ] 불규칙한 크레이터 형태 (노이즈 추가)
+- [ ] 타원형 크레이터
+- [ ] 다중 충돌 크레이터
+- [ ] 침식 시뮬레이션
+- [ ] 크레이터 LOD 시스템
+- [ ] 쉐이더 통합 (먼지, 바이옴)
+
+### 관련 문서
+
+자세한 내용은 [CRATER_SYSTEM_GUIDE.md](CRATER_SYSTEM_GUIDE.md) 참조
+
+---
+
+## 크레이터 시스템 디버깅 세션 (2025-01-12) ✓
+
+### 문제 상황
+
+초기 크레이터 생성 시스템 구현 후 다음 문제들 발생:
+1. 모든 크레이터가 한 지점에 나타남
+2. 청크 경계가 불규칙하게 깨짐
+3. "클로버" 형태 - 3개만 보이고 중앙이 넓게 함몰됨
+4. 크레이터가 볼록하게 튀어나옴 (오목해야 하는데 반대)
+5. 우주선이 스폰 시 땅 속으로 가라앉음
+
+### 근본 원인 및 해결
+
+#### 1. SQLite 지형 캐시 문제 ✓
+
+**증상**: 코드 수정 후에도 이전 지형이 계속 로드됨
+
+**원인**: `debug_data/Makemake.sqlite`에 11월 7일자 오래된 지형 데이터 캐싱
+
+**해결**:
+```bash
+rm -f debug_data/Makemake.sqlite
+```
+
+**교훈**: **지형 변경 후 이상하면 무조건 SQLite 캐시부터 삭제!**
+
+#### 2. Godot Voxel Smoothstep 파라미터 순서 반대 ✓
+
+**증상**: 크레이터 겹침 시 넓은 지역이 함께 가라앉고 청크 경계 깨짐
+
+**원인**: Godot Voxel의 `NODE_SMOOTHSTEP`은 **파라미터 순서가 표준과 반대**
+- 표준: `smoothstep(edge0, edge1, x)` - edge0에서 edge1로
+- Godot Voxel: param 0 = edge1, param 1 = edge0 (반대!)
+
+**해결** ([crater_generator.gd:183-184, 203-204](solar_system/crater_generator.gd#L183-L204)):
+```gdscript
+# Bowl falloff - SWAPPED
+bowl_falloff_id = graph.create_node(VoxelGraphFunction.NODE_SMOOTHSTEP, ...)
+graph.set_node_param(bowl_falloff_id, 0, crater.radius)           # param 0 = 큰 값
+graph.set_node_param(bowl_falloff_id, 1, crater.bowl_flat_radius) # param 1 = 작은 값
+
+# Rim falloff - SWAPPED
+rim_falloff_id = graph.create_node(VoxelGraphFunction.NODE_SMOOTHSTEP, ...)
+graph.set_node_param(rim_falloff_id, 0, crater.rim_end_radius)    # param 0 = 큰 값
+graph.set_node_param(rim_falloff_id, 1, crater.rim_start_radius)  # param 1 = 작은 값
+```
+
+**교훈**: **Godot Voxel의 Smoothstep은 항상 param 0 > param 1 순서로!**
+
+#### 3. SDF 깊이 부호 문제 ✓
+
+**증상**: 크레이터가 오목하지 않고 볼록하게 튀어나옴
+
+**원인**: SDF에서 `Add` 노드로 합성 시:
+- **양수**: 지형이 가라앉음 (함몰, depression)
+- **음수**: 지형이 올라옴 (융기, uplift)
+
+**해결** ([crater_generator.gd:199](solar_system/crater_generator.gd#L199)):
+```gdscript
+# Bowl depth - POSITIVE for depression
+graph.set_node_param(bowl_depth_const_id, 0, crater.depth)  # 양수 사용
+```
+
+**교훈**: **SDF Add 합성에서 깊이는 양수, 융기는 음수!**
+
+#### 4. 지형 생성 타이밍 이슈 ✓
+
+**증상**: 우주선 스폰 시 땅 속으로 가라앉음
+
+**원인**: 지형 생성이 우주선 스폰보다 늦게 완료됨
+
+**기존 해결책**: [solar_system.gd:106-131](solar_system/solar_system.gd#L106-L131)에 이미 150m 안전 높이 적용됨
+```gdscript
+var spawn_height := makemake.radius + 150.0  # 100m above surface for safety
+```
+
+**실제 원인**: SQLite 캐시가 잘못된 지형을 로드하여 높이 계산 오류
+
+**해결**: SQLite 캐시 삭제로 해결됨
+
+### 디버깅 방법론
+
+#### 점진적 테스트 전략 ✓
+
+1. **크레이터 1개** - 시스템 기본 동작 확인
+2. **크레이터 4개, 1000m 간격** - 겹침 없이 분리 테스트
+3. **크레이터 4개, 약간 겹침** - 겹침 처리 확인
+4. **크레이터 6개, 최종 배치** - 실제 사용 시나리오
+
+#### 캐시 클리어 체크리스트
+
+지형 변경 후 문제 발생 시:
+```bash
+# 1. SQLite 캐시 (최우선!)
+rm -f debug_data/*.sqlite
+
+# 2. Godot 임포트 캐시
+rm -rf .godot/imported/*
+
+# 3. 쉐이더 캐시
+rm -rf .godot/shader_cache/*
+
+# 4. 리소스 UID 변경 (강제 리로드)
+# voxel_graph_planet_v5.tres 첫 줄:
+uid://c8m4k5n6p7q8r9s0  # 새 랜덤 UID로 변경
+```
+
+**중요**: SQLite 캐시가 99% 문제의 원인!
+
+### 최종 작동 구성
+
+[solar_system_setup.gd:277-339](solar_system/solar_system_setup.gd#L277-L339):
+```gdscript
+# 6개 크레이터 - 다양한 크기, 충분한 간격
+1. Landing Basin (0, 0)       - 500m radius, 100m deep (spawn point)
+2. North (0, 2000)            - 400m radius, 80m deep
+3. South (0, -2000)           - 400m radius, 80m deep
+4. East (2000, 0)             - 350m radius, 70m deep
+5. West (-2000, 0)            - 350m radius, 70m deep
+6. Northeast (1400, 1400)     - 300m radius, 60m deep
+```
+
+### 핵심 교훈
+
+1. **지형 문제 → SQLite 캐시부터 삭제!**
+2. **Godot Voxel Smoothstep = 파라미터 순서 반대**
+3. **SDF Add: 양수 = 함몰, 음수 = 융기**
+4. **점진적 테스트: 1개 → 4개 → 6개**
+5. **크레이터 겹침 없으려면 최소 1000m 간격 유지**
+
+---
+
+## 향후 지형 피처: 산맥 & 동굴 시스템
+
+크레이터 시스템과 동일한 방법론으로 산맥과 동굴을 구현할 수 있습니다.
+
+### 산맥 생성기 (MountainRangeGenerator)
+
+**개념**: 크레이터의 반대 - 융기(uplift) 중심
+
+**구조**:
+```
+[거리/방향 계산]
+Input X/Z → 선/곡선까지의 거리 계산
+
+[산맥 프로필]
+Distance → Smoothstep(높이 falloff) → Multiply(peak_height)
+         → Smoothstep(경사 falloff) → 지형에 Add (음수 = 융기)
+
+[노이즈 추가]
+산맥 높이 × Noise → 불규칙한 봉우리 생성
+```
+
+**파라미터**:
+```gdscript
+class MountainRangeDef:
+    var start_pos: Vector3      # 시작점
+    var end_pos: Vector3        # 끝점 (선형 산맥)
+    var peak_height: float      # 정상 높이 (예: 500m)
+    var base_width: float       # 산맥 폭 (예: 800m)
+    var slope_steepness: float  # 경사 가파름 정도
+    var roughness: float        # 표면 거칠기 (노이즈 강도)
+```
+
+**사용 예**:
+```gdscript
+var mountain_gen = MountainRangeGenerator.new()
+var ranges = [
+    MountainRangeDef.new(
+        Vector3(-3000, 0, -2000),  # 시작
+        Vector3(3000, 0, 2000),    # 끝
+        600.0,                      # 600m 높이
+        1000.0,                     # 1km 폭
+        0.7,                        # 가파른 경사
+        0.3                         # 중간 거칠기
+    )
+]
+mountain_gen.add_ranges_to_graph(graph, ranges)
+```
+
+**핵심 노드 체인**:
+1. 점-선 거리 계산 (cross product 방식)
+2. Smoothstep으로 높이 프로필 생성
+3. FastNoise × 높이 → 불규칙한 봉우리
+4. **Subtract** (또는 Add with negative) → 지형 융기
+
+**주의사항**:
+- **SDF Subtract = 융기** (크레이터와 반대)
+- 노이즈 frequency 조정으로 봉우리 크기 제어
+- 산맥 교차 시 `Min` 또는 `SdfSmoothUnion` 사용
+
+### 동굴 시스템 생성기 (CaveSystemGenerator)
+
+**개념**: 3D 노이즈 기반 내부 공간 생성
+
+**구조**:
+```
+[동굴 입구]
+Distance from entrance → Smoothstep → 입구 터널
+
+[동굴 네트워크]
+FastNoise3D (Cellular/Perlin) → Threshold → 동굴 공간
+InputY (높이) → 깊이 제한
+
+[합성]
+Entrance + Cave_Network → Max → 지형에서 빼기
+```
+
+**파라미터**:
+```gdscript
+class CaveSystemDef:
+    var entrance_pos: Vector3   # 입구 위치
+    var entrance_radius: float  # 입구 크기
+    var depth_min: float        # 최소 깊이 (y좌표)
+    var depth_max: float        # 최대 깊이
+    var cave_size: float        # 동굴 공간 크기 (0.0-1.0)
+    var density: float          # 동굴 밀도 (0.0-1.0)
+    var noise_scale: float      # 노이즈 스케일
+```
+
+**사용 예**:
+```gdscript
+var cave_gen = CaveSystemGenerator.new()
+var caves = [
+    CaveSystemDef.new(
+        Vector3(1500, 0, -1000),  # 입구 위치
+        50.0,                      # 50m 입구
+        7800.0,                    # 최소 깊이 (행성 반지름 - 200m)
+        7950.0,                    # 최대 깊이 (표면 근처)
+        0.4,                       # 중간 크기 동굴
+        0.3,                       # 적당한 밀도
+        20.0                       # 노이즈 스케일
+    )
+]
+cave_gen.add_caves_to_graph(graph, caves)
+```
+
+**핵심 노드 체인**:
+1. **FastNoiseCellular** 또는 **FastNoisePerlin** (3D)
+2. **Threshold** 노드로 동굴 공간 결정 (> 0.5 = 공기)
+3. InputY로 깊이 마스킹
+4. 입구 터널 (SdfCapsule 또는 거리 기반)
+5. **Subtract** 또는 **Max** → 지형에서 제거
+
+**동굴 입구 생성**:
+```
+InputX/Y/Z → Distance from entrance_pos → SdfSphere
+           → Smoothstep(터널 확장) → 지형에서 빼기
+```
+
+**3D 네트워크 생성**:
+```
+FastNoise3D(InputX, InputY, InputZ)
+  → Add(threshold_adjust)
+  → Clamp → Select (> 0 = 동굴 공간)
+  → Mask by depth (InputY between min/max)
+```
+
+**주의사항**:
+- **3D 노이즈 필수** (X, Y, Z 모두 입력)
+- Cellular noise = 더 불규칙한 동굴
+- Perlin noise = 더 부드러운 동굴
+- `SdfSmoothSubtraction`으로 부드러운 동굴 벽
+- 깊이 제한 없으면 행성 반대편까지 뚫림!
+
+### 통합 지형 생성 파이프라인
+
+```gdscript
+# solar_system_setup.gd에서 순차 적용
+var generator = BasePlanetVoxelGraph.duplicate(true)
+
+# 1. 크레이터 (함몰)
+var crater_gen = CraterGenerator.new()
+crater_gen.add_craters_to_graph(generator, crater_defs)
+
+# 2. 산맥 (융기)
+var mountain_gen = MountainRangeGenerator.new()
+mountain_gen.add_ranges_to_graph(generator, range_defs)
+
+# 3. 동굴 (내부 공간)
+var cave_gen = CaveSystemGenerator.new()
+cave_gen.add_caves_to_graph(generator, cave_defs)
+
+# 4. 지형에 적용
+voxel_terrain.generator = generator
+```
+
+### 성능 고려사항
+
+**괜찮음**:
+- 크레이터 50개 + 산맥 10개 + 동굴 5개 = 여전히 빠름
+- 노드 수는 성능에 무관 (컴파일 최적화됨)
+
+**주의**:
+- **3D 노이즈 (동굴)** = 가장 비쌈 (X, Y, Z 모두 샘플링)
+- 동굴 noise octave는 3-4 이하 권장
+- 산맥은 2D 거리만 사용하므로 저렴함
+
+### 다음 구현 순서
+
+1. **산맥 시스템** (크레이터보다 쉬움 - 같은 2D 거리 계산)
+2. **동굴 시스템** (3D 노이즈 - 좀 더 복잡)
+3. **통합 테스트** (크레이터 + 산맥 + 동굴)
+4. **쉐이더 통합** (각 피처별 색상/재질)
+
+---
+
+## 크레이터 먼지 안개 시스템 (2025-01-13) ✓
+
+### 개요
+
+크레이터 주변에 대기 효과를 주기 위한 FogVolume 시스템 구현. Godot 4의 내장 볼륨 안개 기능을 사용하여 크레이터마다 자동으로 먼지 안개를 생성합니다.
+
+### 구현 내용
+
+**파일**: [solar_system_setup.gd:608-642](solar_system/solar_system_setup.gd#L608-L642)
+
+새로운 정적 함수 추가:
+```gdscript
+static func _add_crater_dust_volumes(body: StellarBody, root: Node3D, craters: Array) -> void
+```
+
+### 주요 기능
+
+1. **자동 FogVolume 생성**: 각 크레이터마다 FogVolume 노드 자동 생성
+2. **FogMaterial 설정**:
+   - 밀도(density): 0.15 - 은은한 안개
+   - 색상(albedo): `Color(0.75, 0.70, 0.60)` - 크레이터 먼지 쉐이더 색상과 일치
+   - 발광(emission): `Color(0.05, 0.05, 0.05)` - 아주 미세한 빛
+3. **크기 및 위치**:
+   - 크기: 크레이터 반지름 × 2.2 (수평), 60m (높이)
+   - 위치: 크레이터 중심, 지표면 위 30m
+
+### 기술적 세부사항
+
+#### Godot 4 FogVolume API
+
+**중요**: Godot 4에서 FogVolume 속성은 직접 설정 불가. FogMaterial을 통해 설정해야 함.
+
+**잘못된 방법** (작동 안 함):
+```gdscript
+fog_volume.density = 0.15  # 에러!
+fog_volume.albedo = Color(...)  # 에러!
+```
+
+**올바른 방법** ([solar_system_setup.gd:627-632](solar_system/solar_system_setup.gd#L627-L632)):
+```gdscript
+var fog_material = FogMaterial.new()
+fog_material.density = 0.15
+fog_material.albedo = Color(0.75, 0.70, 0.60)
+fog_material.emission = Color(0.05, 0.05, 0.05)
+fog_volume.material = fog_material
+```
+
+#### 노드 계층 구조
+
+**중요**: `StellarBody`는 `RefCounted` 클래스이므로 `add_child()` 메서드 없음.
+
+**잘못된 방법**:
+```gdscript
+body.add_child(fog_volume)  # 에러! StellarBody는 RefCounted
+```
+
+**올바른 방법** ([solar_system_setup.gd:360, 609, 639](solar_system/solar_system_setup.gd#L360)):
+```gdscript
+# 함수 시그니처에 root: Node3D 파라미터 추가
+static func _add_crater_dust_volumes(body: StellarBody, root: Node3D, craters: Array)
+
+# root 노드에 추가
+root.add_child(fog_volume)
+```
+
+### 발생한 에러 및 해결
+
+#### 에러 1: Non-static 함수 호출
+**에러**: "Cannot call non-static function "_add_crater_dust_volumes()" from the static function "_setup_rocky_planet()"."
+
+**원인**: `_setup_rocky_planet()`이 static 함수인데 non-static 함수 호출 시도
+
+**해결**: 함수를 `static func`로 변경
+
+#### 에러 2: SHAPE_BOX 상수 없음
+**에러**: "Cannot find member "SHAPE_BOX" in base "FogVolume"."
+
+**원인**: Godot 4의 FogVolume은 항상 박스 형태이며 `shape` 속성 없음
+
+**해결**: `fog_volume.shape = FogVolume.SHAPE_BOX` 라인 제거. `size` 속성만 설정.
+
+#### 에러 3: 속성 직접 할당 불가
+**에러**: "Invalid assignment of property or key 'density' with value of type 'float' on a base object of type 'FogVolume'."
+
+**원인**: Godot 4에서 FogVolume 속성은 FogMaterial을 통해서만 설정 가능
+
+**해결**: FogMaterial 생성 후 material 속성에 할당
+
+#### 에러 4: RefCounted에 add_child 없음
+**에러**: "Nonexistent function 'add_child' in base 'RefCounted (stellar_body.gd)'."
+
+**원인**: StellarBody는 데이터 클래스(RefCounted)로 씬 그래프 메서드 없음
+
+**해결**: `root: Node3D` 파라미터 추가하여 실제 씬 노드에 추가
+
+### 통합 지점
+
+**호출 위치**: [solar_system_setup.gd:360](solar_system/solar_system_setup.gd#L360)
+
+```gdscript
+# Add dust fog volumes to craters
+_add_crater_dust_volumes(body, root, craters)
+```
+
+크레이터 생성 및 쉐이더 파라미터 설정 직후, 지형 그래프 수정 전에 호출됨.
+
+### 최종 파라미터
+
+| 속성 | 값 | 설명 |
+|-----|----|----|
+| Box Size (X/Z) | crater.radius × 2.2 | 크레이터보다 약간 넓게 |
+| Box Size (Y) | 60m | 안개 층 높이 |
+| Position (Y offset) | +30m | 지표면 위 30m |
+| Density | 0.15 | 은은한 안개 (너무 진하지 않게) |
+| Albedo | `(0.75, 0.70, 0.60)` | 베이지/황토색 먼지 |
+| Emission | `(0.05, 0.05, 0.05)` | 아주 미세한 자체 발광 |
+
+### 시각적 효과
+
+- **쉐이더 먼지 링/레이**: 지표면 텍스처 효과
+- **FogVolume**: 3D 공간 대기 효과
+- **두 시스템 조합**: 지표면 + 대기 레이어로 현실감 증대
+
+### 성능
+
+- 크레이터 6개 = FogVolume 6개
+- FogVolume은 Godot 4의 최적화된 내장 기능
+- 성능 영향 미미 (수십 개까지 문제없음)
+
+### 향후 개선 가능성
+
+1. **동적 안개**: 풍속/방향에 따라 안개 움직임
+2. **시간별 변화**: 낮/밤 주기에 따른 밀도 변화
+3. **입자 시스템 추가**: GPUParticles3D로 미세 먼지 입자 표현
+4. **높이별 밀도 변화**: 바닥에 진하고 위로 갈수록 엷어지는 그라디언트
+
+### 관련 시스템
+
+- **크레이터 생성**: [crater_generator.gd](solar_system/crater_generator.gd)
+- **크레이터 먼지 쉐이더**: [planet_ground.gdshader:32-40, 160-187](solar_system/materials/planet_ground.gdshader#L32-L187)
+- **지형 설정**: [solar_system_setup.gd:236-441](solar_system/solar_system_setup.gd#L236-L441)
+
+---
+
+**최종 업데이트:** 2025-01-13
 **Godot 버전:** 4.5
 **Voxel 플러그인 버전:** Latest (프로젝트 addons 확인)
