@@ -35,6 +35,13 @@ const Binding = preload("res://binding.gd")
 @onready var _damping_slider : Slider = $PC/MC/VB/TabContainer/Character/GC/HB4/Damping
 @onready var _damping_value_label : Label = $PC/MC/VB/TabContainer/Character/GC/HB4/DampingValue
 
+@onready var _ship_accel_slider : Slider = $PC/MC/VB/TabContainer/Character/GC/HB5/ShipAccel
+@onready var _ship_accel_value_label : Label = $PC/MC/VB/TabContainer/Character/GC/HB5/ShipAccelValue
+@onready var _ship_planet_speed_slider : Slider = $PC/MC/VB/TabContainer/Character/GC/HB6/ShipPlanetSpeed
+@onready var _ship_planet_speed_value_label : Label = $PC/MC/VB/TabContainer/Character/GC/HB6/ShipPlanetSpeedValue
+@onready var _ship_space_speed_slider : Slider = $PC/MC/VB/TabContainer/Character/GC/HB7/ShipSpaceSpeed
+@onready var _ship_space_speed_value_label : Label = $PC/MC/VB/TabContainer/Character/GC/HB7/ShipSpaceSpeedValue
+
 
 var _settings : Settings
 var _updating_gui := false
@@ -76,11 +83,21 @@ func set_settings(s: Settings):
 	_bindings.append(Binding.create(_settings, "gravity", _gravity_slider))
 	_bindings.append(Binding.create(_settings, "movement_damping", _damping_slider))
 
-	# Connect sliders to update value labels
+	# Ship physics bindings
+	_bindings.append(Binding.create(_settings, "ship_linear_acceleration", _ship_accel_slider))
+	_bindings.append(Binding.create(_settings, "ship_speed_cap_on_planet", _ship_planet_speed_slider))
+	_bindings.append(Binding.create(_settings, "ship_speed_cap_in_space", _ship_space_speed_slider))
+
+	# Connect sliders to update value labels (character)
 	_movement_accel_slider.value_changed.connect(_on_movement_accel_changed)
 	_jump_speed_slider.value_changed.connect(_on_jump_speed_changed)
 	_gravity_slider.value_changed.connect(_on_gravity_changed)
 	_damping_slider.value_changed.connect(_on_damping_changed)
+
+	# Connect sliders to update value labels (ship)
+	_ship_accel_slider.value_changed.connect(_on_ship_accel_changed)
+	_ship_planet_speed_slider.value_changed.connect(_on_ship_planet_speed_changed)
+	_ship_space_speed_slider.value_changed.connect(_on_ship_space_speed_changed)
 
 	_update_ui()
 
@@ -101,6 +118,15 @@ func _on_gravity_changed(value: float):
 
 func _on_damping_changed(value: float):
 	_damping_value_label.text = "%.2f" % value
+
+func _on_ship_accel_changed(value: float):
+	_ship_accel_value_label.text = "%.1f" % value
+
+func _on_ship_planet_speed_changed(value: float):
+	_ship_planet_speed_value_label.text = "%.0f" % value
+
+func _on_ship_space_speed_changed(value: float):
+	_ship_space_speed_value_label.text = "%.0f" % value
 
 func _on_Close_pressed():
 	hide()

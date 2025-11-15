@@ -280,8 +280,9 @@ func _process_setting_changes():
 			if body.atmosphere != null:
 				SolarSystemSetup.update_atmosphere_settings(body, _settings)
 
-	# Update character physics settings
+	# Update character and ship physics settings
 	_apply_character_settings()
+	_apply_ship_settings()
 
 
 func _apply_character_settings():
@@ -320,6 +321,21 @@ func _apply_character_settings():
 	char.set_meta("jump_speed", _settings.jump_speed)
 	char.set_meta("gravity", _settings.gravity)
 	char.set_meta("movement_damping", _settings.movement_damping)
+
+
+func _apply_ship_settings():
+	# Apply ship physics settings if player is a ship
+	if _player == null:
+		return
+
+	# Check if player is a ship (has linear_velocity property)
+	if not _player.is_in_group("ship"):
+		return
+
+	# Apply settings via export properties
+	_player.linear_acceleration = _settings.ship_linear_acceleration
+	_player.speed_cap_on_planet = _settings.ship_speed_cap_on_planet
+	_player.speed_cap_in_space = _settings.ship_speed_cap_in_space
 
 
 func _process_debug():

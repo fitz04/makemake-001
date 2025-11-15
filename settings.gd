@@ -27,6 +27,11 @@ var antialias := ANTIALIAS_DISABLED
 # Character physics settings
 var movement_acceleration := 75.0  # Character movement speed (10-200)
 var jump_speed := 10.0             # Jump height (3-20)
-var gravity := 5.0                 # Gravity strength (1-20)
+var gravity := 5.0                 # Gravity strength (0-20, 0 = weightless)
 var movement_damping := 0.2        # Movement friction (0.05-0.5)
+
+# Ship physics settings
+var ship_linear_acceleration := 30.0   # Forward/backward acceleration (1-100)
+var ship_speed_cap_on_planet := 250.0  # Max speed on planet (50-500)
+var ship_speed_cap_in_space := 1500.0  # Max speed in space (500-3000)
 

@@ -292,7 +292,7 @@ size_flags_horizontal = 3
 [node name="Gravity" type="HSlider" parent="PC/MC/VB/TabContainer/Character/GC/HB3"]
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 1.0
+min_value = 0.0
 max_value = 20.0
 step = 0.5
 value = 5.0
@@ -323,6 +323,89 @@ value = 0.2
 layout_mode = 2
 custom_minimum_size = Vector2(50, 0)
 text = "0.2"
+horizontal_alignment = 2
+
+[node name="ShipSeparator" type="HSeparator" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 20)
+
+[node name="ShipSeparator2" type="HSeparator" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 20)
+
+[node name="ShipSectionLabel" type="Label" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+text = "SHIP SETTINGS"
+theme_override_font_sizes/font_size = 14
+custom_minimum_size = Vector2(300, 0)
+
+[node name="ShipSectionLabel2" type="Label" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+
+[node name="ShipAccelLabel" type="Label" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+text = "Forward/Backward Accel"
+
+[node name="HB5" type="HBoxContainer" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ShipAccel" type="HSlider" parent="PC/MC/VB/TabContainer/Character/GC/HB5"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 100.0
+step = 1.0
+value = 30.0
+
+[node name="ShipAccelValue" type="Label" parent="PC/MC/VB/TabContainer/Character/GC/HB5"]
+layout_mode = 2
+custom_minimum_size = Vector2(50, 0)
+text = "30.0"
+horizontal_alignment = 2
+
+[node name="ShipPlanetSpeedLabel" type="Label" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+text = "Max Speed (Planet)"
+
+[node name="HB6" type="HBoxContainer" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ShipPlanetSpeed" type="HSlider" parent="PC/MC/VB/TabContainer/Character/GC/HB6"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 50.0
+max_value = 500.0
+step = 10.0
+value = 250.0
+
+[node name="ShipPlanetSpeedValue" type="Label" parent="PC/MC/VB/TabContainer/Character/GC/HB6"]
+layout_mode = 2
+custom_minimum_size = Vector2(50, 0)
+text = "250.0"
+horizontal_alignment = 2
+
+[node name="ShipSpaceSpeedLabel" type="Label" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+text = "Max Speed (Space)"
+
+[node name="HB7" type="HBoxContainer" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ShipSpaceSpeed" type="HSlider" parent="PC/MC/VB/TabContainer/Character/GC/HB7"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 500.0
+max_value = 3000.0
+step = 50.0
+value = 1500.0
+
+[node name="ShipSpaceSpeedValue" type="Label" parent="PC/MC/VB/TabContainer/Character/GC/HB7"]
+layout_mode = 2
+custom_minimum_size = Vector2(50, 0)
+text = "1500.0"
 horizontal_alignment = 2
 
 [node name="HB" type="HBoxContainer" parent="PC/MC/VB"]
