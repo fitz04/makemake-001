@@ -1,0 +1,72 @@
+[Godot/VoxelTools] 20km+ 대규모 행성을 위한 오브젝트 및 지형 배치 전략
+1. 문제 정의: 런타임 편집의 치명적인 성능 비용
+대규모 VoxelLODTerrain 환경에서 프레임 저하를 유발하는 주범은 **'실시간 물리 메시 생성(Real-time Physics Mesh Generation)'**입니다.
+VoxelLODTerrain.paste_block() 또는 edit_box() 같은 함수를 런타임에 호출하면, Zylann 툴은 해당 영역의 비주얼 메시뿐만 아니라 물리 메시까지 CPU에서 다시 계산합니다. 이 비용은 매우 비싸며(비주얼 메시 생성의 20배 이상), 거대한 '건물'이나 '템플릿'을 한 번에 붙여넣을 경우 게임이 수 초에서 수십 초간 멈추는(Stutter) 현상을 유발합니다.
+따라서, 대규모 행성에서 성능을 유지하기 위한 모든 전략은 **"런타임 물리 메시 생성을 어떻게든 피하는 것"**에 초점을 맞춥니다.
+2. 전략 1: 건물 배치 (인공물, 기지) - "하이브리드 (Mesh + Voxel)"
+디테일이 중요하고 파괴되지 않는 인공물(플레이어 기지, NPC 건물)을 배치하는 표준 방식입니다.
+핵심: "건물은 일반 3D 메시로, 땅만 복셀로 평탄화한다."
+프로세스
+기초 공사 (Voxel Foundation)
+플레이어가 건물을 지으려는 위치를 정하면, 해당 영역(예: 20x20m)의 복셀 데이터를 VoxelLODTerrain.edit_box()로 1회 호출하여 강제로 평탄화합니다.
+이 작업은 1회성 프레임 저하를 유발하지만, '건설 모드' 진입 시 한 번만 수행되므로 허용 가능합니다.
+지형 보호 (Voxel Protection)
+(필수) 평탄화된 영역의 2D 좌표(X, Z)를 배열이나 딕셔너리에 **'보호 구역'**으로 저장합니다.
+플레이어가 이 영역을 edit_box()로 다시 파괴하려고 시도하면, 함수 호출 자체를 막아 건물의 기초가 파괴되는 것을 방지합니다.
+건물 인스턴스 (Mesh Instance)
+건물은 복셀이 아닌 일반 .gltf / .obj 3D 모델을 사용합니다.
+MeshInstance3D (비주얼)와 StaticBody3D + CollisionShape (물리) 노드를 씬에 추가합니다.
+이 방식은 Zylann 툴의 복셀 물리 메시를 전혀 사용하지 않으므로, CPU 부하가 0에 가깝습니다.
+표면 정렬 (Alignment)
+20km 행성은 둥글기 때문에 '평평한 기초'도 미세하게 휘어있습니다.
+건물이 땅을 뚫거나 공중에 뜨지 않도록, RayCast를 3~4개(건물 모서리) 쏴서 평탄화된 땅의 평균 표면 법선(Normal) 벡터를 계산합니다.
+StaticBody3D의 transform.basis를 이 평균 법선 벡터에 맞춰 회전시켜, 건물이 둥근 행성 표면에 완벽하게 밀착되도록 정렬합니다.
+3. 전략 2: 지형 템플릿 배치 (자연물) - "생성기 레벨 합성"
+특별한 모양의 크레이터, 협곡, 동굴, 외계 유적 등 **파괴 가능하고 지형과 통합되어야 하는 '자연물'**을 배치하는 방식입니다.
+핵심: "런타임에 배치(Paste)하지 않고, 생성기(Generator)가 지형을 만들 때 템플릿을 합성(Synthesis)한다."
+프로세스
+템플릿 제작 (Offline)
+MagicaVoxel 같은 외부 툴이나, 직접 만든 인-에디터 플러그인을 사용해 '특별한 크레이터' 템플릿을 디자인합니다.
+이 템플릿을 VoxelBuffer 데이터로 변환하여 리소스 파일(예: res://templates/crater_01.res)로 저장합니다.
+템플릿 로드 (Game Load)
+게임 시작 시, res://templates/ 폴더의 모든 템플릿을 미리 load()하여 배열이나 딕셔너리에 저장해 둡니다.
+합성 (Generator-Level Synthesis)
+VoxelLODTerrain이 지형을 생성하기 위해 VoxelGenerator 스크립트의 _generate_block(buffer, origin_in_voxels) 함수를 호출합니다.
+이 함수 내부에서 다음 로직을 수행합니다:
+# VoxelGenerator 스크립트 예시 (VoxelGeneratorScript 상속)
+
+var preloaded_template = load("res://templates/crater_01.res")
+var template_placement_position = Vector3i(1000, 50, 2000) # 예시 좌표
+
+func _generate_block(buffer: VoxelBuffer, origin_in_voxels: Vector3i):
+    # 1. (스크립트와 씨름) FastNoiseLite 등으로 기본 행성 지형(뼈대)을 계산해 buffer에 채운다.
+    generate_base_planet_noise(buffer, origin_in_voxels)
+
+    # 2. (템플릿 합성) 현재 생성할 블록이 템플릿 배치 영역과 겹치는지 확인한다.
+    var aabb_template = AABB(template_placement_position, preloaded_template.get_size())
+    var aabb_current_block = AABB(origin_in_voxels, buffer.get_size())
+
+    if aabb_template.intersects(aabb_current_block):
+        # 'paste_block()' (느림)이 아닌 'buffer.paste()' (메모리 복사, 빠름)를 사용한다.
+        # 이 연산은 비주얼/물리 메시가 생성되기 *전*에 메모리상에서 일어난다.
+
+        # (중요) paste_into: 대상 버퍼, paste_pos: 대상 버퍼의 어느 위치에,
+        # source_buffer: 템플릿, src_min: 템플릿의 어느 영역부터
+        var paste_pos = template_placement_position - origin_in_voxels
+        buffer.paste_into(preloaded_template, paste_pos)
+
+        # (옵션: 부드럽게 섞기) SDF 채널을 사용하고 있다면,
+        # buffer.paste_into_sdf(template, paste_pos, 0, 0.5) 등으로 섞을 수도 있음.
+
+
+결과: VoxelLODTerrain은 '템플릿이 합성된' 최종 buffer 데이터를 받습니다. 템플릿이 노이즈의 일부였던 것처럼 인식하므로, 메시 생성(비주얼+물리)을 단 한 번만 수행합니다. 런타임 paste_block()에서 발생하는 성능 저하가 0입니다.
+4. 요약 및 관련 쓰레드
+관련 핵심 링크
+Zylann/solar_system_demo (GitHub)
+필수 분석. 20km 행성, 우주선(메시) 이착륙, Origin Shifting 등 '전략 1'을 구현하는 데 필요한 모든 핵심 기술(물리, 정렬, 행성 중력)의 실제 코드입니다.
+VoxelGenerator 공식 문서
+'전략 2'의 핵심인 VoxelGenerator가 CPU 스레드에서 블록 단위로 작동하는 원리를 설명합니다.
+GitHub Issue: Creating physics shapes is extremely slow (#54)
+런타임 편집(paste)이 왜 느린지에 대한 근본적인 토론입니다. "물리 메시 생성이 비주얼보다 20배 느리다"는 내용이 포함되어 있으며, 왜 우리가 이 복잡한 전략들을 사용해야 하는지 증명해 줍니다.
+Godot 3 Align with Surface (KidsCanCode)
+'전략 1'의 4단계(표면 정렬)에 필요한 벡터 수학(align_with_y())을 배울 수 있는 최고의 튜토리얼 중 하나입니다.
