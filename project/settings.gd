@@ -1,0 +1,41 @@
+
+const DETAIL_RENDERING_DISABLED = 0
+const DETAIL_RENDERING_CPU = 1
+const DETAIL_RENDERING_GPU = 2
+
+const CLOUDS_DISABLED = 0
+const CLOUDS_LOW = 1
+const CLOUDS_HIGH = 2
+
+const ANTIALIAS_DISABLED = 0
+const ANTIALIAS_FXAA = 1
+
+var world_scale_x10 := false
+var shadows_enabled := true
+var lens_flares_enabled := true
+var glow_enabled := true
+var detail_rendering_mode := DETAIL_RENDERING_GPU
+var main_volume_linear := 1.0
+var debug_text := true
+var show_octree_nodes := false
+var show_mesh_updates := false
+var show_edited_data_blocks := false
+var wireframe := false
+var clouds_quality := CLOUDS_LOW
+var antialias := ANTIALIAS_DISABLED
+
+# Character physics settings
+var movement_acceleration := 75.0  # Character movement speed (10-200)
+var jump_speed := 10.0             # Jump height (3-20)
+var gravity := 5.0                 # Gravity strength (0-20, 0 = weightless)
+var movement_damping := 0.2        # Movement friction (0.05-0.5)
+
+# Ship physics settings
+var ship_linear_acceleration := 50.0   # Forward/backward acceleration (1-100)
+var ship_speed_cap_on_planet := 250.0  # Max speed on planet (50-500)
+var ship_speed_cap_in_space := 1500.0  # Max speed in space (500-3000)
+var ship_gravity_multiplier := 0.005   # Gravity coefficient (0.001-0.01)
+
+# Heightmap terrain settings
+var heightmap_radius_scale := 1.0      # Stamp radius multiplier (0.5-3.0)
+var heightmap_intensity_scale := 1.0   # Height variation strength (0.1-3.0)

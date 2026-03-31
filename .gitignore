@@ -53,3 +53,6 @@ venv/
 *.key
 *.pem
 credentials.*
+
+# Voxel terrain cache
+project/debug_data/*.sqlite

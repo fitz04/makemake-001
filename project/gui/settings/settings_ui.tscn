@@ -1,0 +1,445 @@
+[gd_scene load_steps=4 format=3 uid="uid://2n0u3k5i6lwq"]
+
+[ext_resource type="Script" uid="uid://nc41yv5ju28j" path="res://gui/settings/settings_ui.gd" id="1_wl3h4"]
+[ext_resource type="Shader" uid="uid://ditohlolyiqq4" path="res://gui/background_blur.gdshader" id="2_htf4p"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_mxpjy"]
+shader = ExtResource("2_htf4p")
+
+[node name="SettingsUI" type="CenterContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_wl3h4")
+
+[node name="PC" type="PanelContainer" parent="."]
+material = SubResource("ShaderMaterial_mxpjy")
+custom_minimum_size = Vector2(600, 350)
+layout_mode = 2
+
+[node name="MC" type="MarginContainer" parent="PC"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VB" type="VBoxContainer" parent="PC/MC"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PC/MC/VB"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Settings"
+horizontal_alignment = 1
+
+[node name="TabContainer" type="TabContainer" parent="PC/MC/VB"]
+layout_mode = 2
+size_flags_vertical = 3
+current_tab = 4
+
+[node name="Game" type="MarginContainer" parent="PC/MC/VB/TabContainer"]
+visible = false
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+metadata/_tab_index = 0
+
+[node name="GC" type="GridContainer" parent="PC/MC/VB/TabContainer/Game"]
+layout_mode = 2
+theme_override_constants/h_separation = 16
+columns = 2
+
+[node name="Label" type="RichTextLabel" parent="PC/MC/VB/TabContainer/Game/GC"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+bbcode_enabled = true
+text = "World Scale x10 [color=#777](set before start)[/color]
+[color=yellow]Warning: buggy on planets, might require double-precision build[/color]"
+fit_content = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PC/MC/VB/TabContainer/Game/GC"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="WorldScaleX10" type="CheckBox" parent="PC/MC/VB/TabContainer/Game/GC/VBoxContainer"]
+layout_mode = 2
+text = "Enabled"
+
+[node name="Graphics" type="MarginContainer" parent="PC/MC/VB/TabContainer"]
+visible = false
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+metadata/_tab_index = 1
+
+[node name="GC" type="GridContainer" parent="PC/MC/VB/TabContainer/Graphics"]
+layout_mode = 2
+theme_override_constants/h_separation = 16
+columns = 2
+
+[node name="Label2" type="Label" parent="PC/MC/VB/TabContainer/Graphics/GC"]
+layout_mode = 2
+text = "Lens flares"
+
+[node name="LensFlares" type="CheckBox" parent="PC/MC/VB/TabContainer/Graphics/GC"]
+layout_mode = 2
+text = "Enabled"
+
+[node name="Label3" type="Label" parent="PC/MC/VB/TabContainer/Graphics/GC"]
+layout_mode = 2
+text = "Glow"
+
+[node name="Glow" type="CheckBox" parent="PC/MC/VB/TabContainer/Graphics/GC"]
+layout_mode = 2
+text = "Enabled"
+
+[node name="Label4" type="Label" parent="PC/MC/VB/TabContainer/Graphics/GC"]
+layout_mode = 2
+text = "Shadows"
+
+[node name="Shadows" type="CheckBox" parent="PC/MC/VB/TabContainer/Graphics/GC"]
+layout_mode = 2
+text = "Enabled"
+
+[node name="Label" type="Label" parent="PC/MC/VB/TabContainer/Graphics/GC"]
+layout_mode = 2
+text = "Detail rendering"
+
+[node name="DetailRenderingSelector" type="OptionButton" parent="PC/MC/VB/TabContainer/Graphics/GC"]
+layout_mode = 2
+size_flags_horizontal = 3
+selected = 0
+item_count = 3
+popup/item_0/text = "GPU"
+popup/item_0/id = 0
+popup/item_1/text = "CPU"
+popup/item_1/id = 1
+popup/item_2/text = "Disabled"
+popup/item_2/id = 2
+
+[node name="Label5" type="Label" parent="PC/MC/VB/TabContainer/Graphics/GC"]
+layout_mode = 2
+text = "Clouds"
+
+[node name="CloudsSelector" type="OptionButton" parent="PC/MC/VB/TabContainer/Graphics/GC"]
+layout_mode = 2
+selected = 1
+item_count = 3
+popup/item_0/text = "Disabled"
+popup/item_0/id = 0
+popup/item_1/text = "Low"
+popup/item_1/id = 1
+popup/item_2/text = "High"
+popup/item_2/id = 2
+
+[node name="Label6" type="Label" parent="PC/MC/VB/TabContainer/Graphics/GC"]
+layout_mode = 2
+text = "Anti-aliasing"
+
+[node name="AntialiasSelector" type="OptionButton" parent="PC/MC/VB/TabContainer/Graphics/GC"]
+layout_mode = 2
+item_count = 2
+popup/item_0/text = "Disabled"
+popup/item_0/id = 0
+popup/item_1/text = "FXAA"
+popup/item_1/id = 1
+
+[node name="Sound" type="MarginContainer" parent="PC/MC/VB/TabContainer"]
+visible = false
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+metadata/_tab_index = 2
+
+[node name="GridContainer" type="GridContainer" parent="PC/MC/VB/TabContainer/Sound"]
+layout_mode = 2
+theme_override_constants/h_separation = 16
+columns = 2
+
+[node name="Label" type="Label" parent="PC/MC/VB/TabContainer/Sound/GridContainer"]
+layout_mode = 2
+text = "Main volume"
+
+[node name="MainVolume" type="HSlider" parent="PC/MC/VB/TabContainer/Sound/GridContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+
+[node name="Debug" type="MarginContainer" parent="PC/MC/VB/TabContainer"]
+visible = false
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+metadata/_tab_index = 3
+
+[node name="GC" type="GridContainer" parent="PC/MC/VB/TabContainer/Debug"]
+layout_mode = 2
+theme_override_constants/h_separation = 16
+columns = 2
+
+[node name="Label" type="Label" parent="PC/MC/VB/TabContainer/Debug/GC"]
+layout_mode = 2
+text = "HUD text"
+
+[node name="ShowDebugText" type="CheckBox" parent="PC/MC/VB/TabContainer/Debug/GC"]
+layout_mode = 2
+text = "Enabled"
+
+[node name="Label2" type="Label" parent="PC/MC/VB/TabContainer/Debug/GC"]
+layout_mode = 2
+text = "Show octree nodes"
+
+[node name="ShowOctreeNodes" type="CheckBox" parent="PC/MC/VB/TabContainer/Debug/GC"]
+layout_mode = 2
+text = "Enabled"
+
+[node name="Label3" type="Label" parent="PC/MC/VB/TabContainer/Debug/GC"]
+layout_mode = 2
+text = "Show mesh updates"
+
+[node name="ShowMeshUpdates" type="CheckBox" parent="PC/MC/VB/TabContainer/Debug/GC"]
+layout_mode = 2
+text = "Enabled"
+
+[node name="Label4" type="Label" parent="PC/MC/VB/TabContainer/Debug/GC"]
+layout_mode = 2
+text = "Show edited data blocks"
+
+[node name="ShowEditedDataBlocks" type="CheckBox" parent="PC/MC/VB/TabContainer/Debug/GC"]
+layout_mode = 2
+text = "Enabled"
+
+[node name="Label5" type="Label" parent="PC/MC/VB/TabContainer/Debug/GC"]
+layout_mode = 2
+text = "Wireframe"
+
+[node name="Wireframe" type="CheckBox" parent="PC/MC/VB/TabContainer/Debug/GC"]
+layout_mode = 2
+text = "Enabled"
+
+[node name="Character" type="MarginContainer" parent="PC/MC/VB/TabContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+metadata/_tab_index = 4
+
+[node name="GC" type="GridContainer" parent="PC/MC/VB/TabContainer/Character"]
+layout_mode = 2
+theme_override_constants/h_separation = 16
+columns = 2
+
+[node name="MovementAccelLabel" type="Label" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+text = "Movement Speed"
+
+[node name="HB1" type="HBoxContainer" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MovementAccel" type="HSlider" parent="PC/MC/VB/TabContainer/Character/GC/HB1"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 10.0
+max_value = 200.0
+step = 5.0
+value = 200.0
+
+[node name="MovementAccelValue" type="Label" parent="PC/MC/VB/TabContainer/Character/GC/HB1"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "75.0"
+horizontal_alignment = 2
+
+[node name="JumpSpeedLabel" type="Label" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+text = "Jump Height"
+
+[node name="HB2" type="HBoxContainer" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="JumpSpeed" type="HSlider" parent="PC/MC/VB/TabContainer/Character/GC/HB2"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 3.0
+max_value = 20.0
+step = 0.5
+value = 10.0
+
+[node name="JumpSpeedValue" type="Label" parent="PC/MC/VB/TabContainer/Character/GC/HB2"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "10.0"
+horizontal_alignment = 2
+
+[node name="GravityLabel" type="Label" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+text = "Gravity"
+
+[node name="HB3" type="HBoxContainer" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Gravity" type="HSlider" parent="PC/MC/VB/TabContainer/Character/GC/HB3"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 20.0
+step = 0.5
+value = 5.0
+
+[node name="GravityValue" type="Label" parent="PC/MC/VB/TabContainer/Character/GC/HB3"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "5.0"
+horizontal_alignment = 2
+
+[node name="DampingLabel" type="Label" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+text = "Movement Damping"
+
+[node name="HB4" type="HBoxContainer" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Damping" type="HSlider" parent="PC/MC/VB/TabContainer/Character/GC/HB4"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.05
+max_value = 0.5
+step = 0.05
+value = 0.2
+
+[node name="DampingValue" type="Label" parent="PC/MC/VB/TabContainer/Character/GC/HB4"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "0.2"
+horizontal_alignment = 2
+
+[node name="ShipSeparator" type="HSeparator" parent="PC/MC/VB/TabContainer/Character/GC"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="ShipSeparator2" type="HSeparator" parent="PC/MC/VB/TabContainer/Character/GC"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="ShipSectionLabel" type="Label" parent="PC/MC/VB/TabContainer/Character/GC"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "SHIP SETTINGS"
+
+[node name="ShipSectionLabel2" type="Label" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+
+[node name="ShipAccelLabel" type="Label" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+text = "Forward/Backward Accel"
+
+[node name="HB5" type="HBoxContainer" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ShipAccel" type="HSlider" parent="PC/MC/VB/TabContainer/Character/GC/HB5"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 500.0
+value = 70.0
+
+[node name="ShipAccelValue" type="Label" parent="PC/MC/VB/TabContainer/Character/GC/HB5"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "30.0"
+horizontal_alignment = 2
+
+[node name="ShipPlanetSpeedLabel" type="Label" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+text = "Max Speed (Planet)"
+
+[node name="HB6" type="HBoxContainer" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ShipPlanetSpeed" type="HSlider" parent="PC/MC/VB/TabContainer/Character/GC/HB6"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 50.0
+max_value = 1500.0
+step = 10.0
+value = 250.0
+
+[node name="ShipPlanetSpeedValue" type="Label" parent="PC/MC/VB/TabContainer/Character/GC/HB6"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "250.0"
+horizontal_alignment = 2
+
+[node name="ShipSpaceSpeedLabel" type="Label" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+text = "Max Speed (Space)"
+
+[node name="HB7" type="HBoxContainer" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ShipSpaceSpeed" type="HSlider" parent="PC/MC/VB/TabContainer/Character/GC/HB7"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 500.0
+max_value = 3000.0
+step = 50.0
+value = 1500.0
+
+[node name="ShipSpaceSpeedValue" type="Label" parent="PC/MC/VB/TabContainer/Character/GC/HB7"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "1500.0"
+horizontal_alignment = 2
+
+[node name="ShipGravityLabel" type="Label" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+text = "Gravity Multiplier"
+
+[node name="HB8" type="HBoxContainer" parent="PC/MC/VB/TabContainer/Character/GC"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ShipGravity" type="HSlider" parent="PC/MC/VB/TabContainer/Character/GC/HB8"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 0.01
+step = 0.0005
+value = 0.005
+
+[node name="ShipGravityValue" type="Label" parent="PC/MC/VB/TabContainer/Character/GC/HB8"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "0.0050"
+horizontal_alignment = 2
+
+[node name="HB" type="HBoxContainer" parent="PC/MC/VB"]
+layout_mode = 2
+alignment = 1
+
+[node name="Close" type="Button" parent="PC/MC/VB/HB"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+text = "Close"
+
+[connection signal="pressed" from="PC/MC/VB/HB/Close" to="." method="_on_Close_pressed"]
