@@ -26,7 +26,6 @@ desktop.ini
 # Build artifacts
 build/
 *.o
-*.obj
 *.exe
 *.dll
 *.so
