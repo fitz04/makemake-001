@@ -1,0 +1,14 @@
+* text=auto eol=lf
+*.sh text eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ogg binary
+*.wav binary
+*.ttf binary
+*.obj binary
+*.gltf binary
+*.glb binary
+*.exr binary
+*.import binary
