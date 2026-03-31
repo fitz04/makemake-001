@@ -42,6 +42,16 @@ uniform vec3 u_crater_dust_color : source_color = vec3(0.80, 0.75, 0.65);
 // TODO Switch to instance uniforms when they work, see Godot issue #54897
 // instance uniform vec3 u_block_local_position = vec3(0.0);
 // instance uniform vec2 u_lod_fade = vec2(0.0);
+// Debug diagnostic modes (set in editor inspector):
+// 0 = normal rendering
+// 1 = height quantization bands (10m intervals)
+// 2 = flat gray + virtual texture normals (isolates VT normal banding)
+// 3 = normal radial component (shows normal quantization)
+// 4 = height quantization bands (5m intervals, finer)
+// 5 = flat gray + geometry normals only (isolates pure geometry banding)
+// 6 = flat gray + UNLIT (isolates mesh silhouette only)
+uniform int u_debug_mode : hint_range(0, 6, 1) = 0;
+
 uniform mat4 u_block_local_transform;
 
 varying vec3 v_up_planet;
@@ -109,20 +119,26 @@ void fragment() {
 		v_normal_model, normal_model);
 	normal_model = normalize(normal_model);
 
-	//vec3 normal = normalize(v_planet_normal);
-	float flatness = max(dot(normal_model, v_up_planet), 0.0);
-	float topness = smoothstep(0.95, 1.0, flatness);  // More strict: only very flat surfaces get top texture
+	// Compute smooth normal for flatness/topness: blend analytical sphere normal
+	// with terrain tangent to preserve slope info without voxel quantization.
+	vec3 terrain_tangent = normal_model - dot(normal_model, v_up_planet) * v_up_planet;
+	vec3 smooth_normal = normalize(v_up_planet + terrain_tangent * 0.8);
+	float flatness = max(dot(smooth_normal, v_up_planet), 0.0);
+	float topness = smoothstep(0.85, 1.0, flatness);  // Widened from 0.95 to reduce quantization sensitivity
 
 	float mountain_height = u_mountain_height;
-	float mountain_smoothness = 3.0;
+	float mountain_smoothness = 50.0;  // Wide transition to span multiple LOD cells (8-64m)
 	float mountain_factor = smoothstep(
 		mountain_height - mountain_smoothness,
 		mountain_height + mountain_smoothness, v_planet_height);
 	topness = mix(topness, 0.0, mountain_factor);
 
-	// Dynamic triplanar sharpness: sharp close-up (4.0), soft far away (1.5) to hide axis-switch artifacts
-	float triplanar_blend_sharpness = mix(1.5, 4.0, clamp(1.0 - v_camera_distance / 500.0, 0.0, 1.0));
-	vec3 triplanar_power_normal = pow(abs(normal_model), vec3(triplanar_blend_sharpness));
+	// Triplanar weights from analytical sphere normal (v_up_planet) to eliminate
+	// voxel normal quantization banding. normal_model is quantized by the voxel
+	// grid, and pow() amplifies those discrete steps into visible concentric rings.
+	// v_up_planet = normalize(local_pos) is perfectly smooth and continuous.
+	float triplanar_blend_sharpness = 2.5;
+	vec3 triplanar_power_normal = pow(abs(v_up_planet), vec3(triplanar_blend_sharpness));
 	triplanar_power_normal /= dot(triplanar_power_normal, vec3(1.0));
 
 	vec3 top_col = triplanar_texture(
@@ -135,10 +151,13 @@ void fragment() {
 	vec3 side_norm = triplanar_texture(
 		u_side_normal_texture, triplanar_power_normal, v_triplanar_uv).rgb;
 
-	// Far texturing
-	float far_min_distance = 100.0;
-	float far_max_distance = 200.0;
-	float far_uv_multiplier = 0.25;
+	// Far texturing — transition pushed to 800-4000m so the UV-scale change
+	// ring is far enough away to be imperceptible from ground level.
+	// Near 100-200m, the ring swept through the terrain with every camera
+	// movement, causing the "flowing contour" artifact.
+	float far_min_distance = 800.0;
+	float far_max_distance = 4000.0;
+	float far_uv_multiplier = 0.19;
 	float far_factor =
 		clamp((v_camera_distance - far_min_distance) / (far_max_distance - far_min_distance), 0.0, 1.0);
 	vec3 far_side_col = triplanar_texture(
@@ -150,6 +169,16 @@ void fragment() {
 
 	// --- Biome detection using 3D spherical arc distance ---
 	float height_from_surface = v_planet_height - u_planet_radius;
+	// Break contour banding: use normalized direction (not quantized position)
+	// so vertices at the same height get different noise values.
+	vec3 noise_pos = normalize(v_local_pos) * 30.0;
+	float height_noise =
+		  sin(noise_pos.x * 7.3  + noise_pos.z * 5.1)  * 50.0   // coarse XZ
+		+ sin(noise_pos.z * 11.7 + noise_pos.x * 8.9)  * 30.0   // medium XZ
+		+ sin(noise_pos.x * 3.7  + noise_pos.y * 6.3)  * 25.0   // coarse XY
+		+ sin(noise_pos.z * 17.1 + noise_pos.y * 4.7)  * 20.0;  // medium ZY
+	// Total amplitude ~125m
+	float perturbed_height = height_from_surface + height_noise;
 
 	// Start with default: Cryo Plains
 	vec3 biome_color = u_cryo_plains_color;
@@ -159,8 +188,9 @@ void fragment() {
 	float landing_blend = 1.0 - smoothstep(u_landing_basin_radius * 0.7, u_landing_basin_radius, landing_dist);
 	biome_color = mix(biome_color, u_landing_basin_color, landing_blend);
 
-	// 2. Ore Highlands - elevation-based (above 50m)
-	float highland_blend = smoothstep(10.0, 120.0, height_from_surface);
+	// 2. Ore Highlands - elevation-based.  Range widened to -40..180 so that
+	//    the ±125m noise fully overlaps both edges — no hard contour line.
+	float highland_blend = smoothstep(-40.0, 180.0, perturbed_height);
 	biome_color = mix(biome_color, u_ore_highlands_color, highland_blend);
 
 	// 3. Fire-Ice Basin - spherical distance from basin center
@@ -189,8 +219,49 @@ void fragment() {
 	vec3 base_albedo = mix(side_col, top_col, topness);
 	vec3 colored_albedo = base_albedo * biome_color;
 	ALBEDO = mix(colored_albedo, base_albedo * u_crater_dust_color, dust_factor * 0.6);
-	NORMAL_MAP = mix(side_norm, top_norm, topness);
-	NORMAL = normal_view;
+
+	// Manual TBN construction from analytical sphere normal to bypass quantized
+	// vertex TANGENT/BINORMAL. Godot's NORMAL_MAP uses the vertex TBN which is
+	// derived from quantized geometry normals — this re-injects banding.
+	vec3 N = normalize(smooth_normal);
+	// Construct tangent: cross with reference axis, fallback for poles
+	vec3 ref_axis = abs(N.y) < 0.999 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+	vec3 T = normalize(cross(ref_axis, N));
+	vec3 B = cross(N, T);
+	// Decode and apply normal map manually
+	vec3 nm_tangent = mix(side_norm, top_norm, topness) * 2.0 - 1.0;
+	vec3 final_normal_model = normalize(T * nm_tangent.x + B * nm_tangent.y + N * nm_tangent.z);
+	vec3 final_normal_view = (VIEW_MATRIX * MODEL_MATRIX * vec4(final_normal_model, 0.0)).xyz;
+	NORMAL = normalize(final_normal_view);
+	// Do NOT set NORMAL_MAP — we handle it manually above
+
+	// --- Debug diagnostic overrides ---
+	if (u_debug_mode == 1) {
+		// Mode 1: Height quantization (10m bands) — contour = voxel grid stepping
+		ALBEDO = vec3(fract(v_planet_height * 0.1));
+	} else if (u_debug_mode == 2) {
+		// Mode 2: Flat gray — if banding persists, it's lighting/normal issue
+		ALBEDO = vec3(0.5);
+		NORMAL_MAP = vec3(0.5, 0.5, 1.0);
+	} else if (u_debug_mode == 3) {
+		// Mode 3: Normal radial dot — shows normal quantization as brightness steps
+		ALBEDO = vec3(dot(normal_model, v_up_planet));
+	} else if (u_debug_mode == 4) {
+		// Mode 4: Height quantization (5m bands) — finer view
+		ALBEDO = vec3(fract(v_planet_height * 0.2));
+	} else if (u_debug_mode == 5) {
+		// Mode 5: Flat gray + geometry normals only (no virtual texture normals)
+		ALBEDO = vec3(0.5);
+		NORMAL_MAP = vec3(0.5, 0.5, 1.0);
+		NORMAL = (VIEW_MATRIX * MODEL_MATRIX * vec4(v_normal_model, 0.0)).xyz;
+	} else if (u_debug_mode == 6) {
+		// Mode 6: UNLIT flat gray — only mesh silhouette/geometry visible
+		ALBEDO = vec3(0.7);
+		NORMAL_MAP = vec3(0.5, 0.5, 1.0);
+		NORMAL = (VIEW_MATRIX * vec4(0.0, 0.0, 1.0, 0.0)).xyz;
+		ROUGHNESS = 1.0;
+		SPECULAR = 0.0;
+	}
 
 	// No fake emission - this is a dark, airless world lit only by the distant sun
 	ROUGHNESS = 0.85;

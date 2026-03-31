@@ -345,7 +345,7 @@ static func _setup_rocky_planet(body: StellarBody, root: Node3D, settings: Setti
 
 	var volume := VoxelLodTerrain.new()
 	volume.lod_count = 7 + extra_lods
-	volume.lod_distance = 80.0  # Increased from 60 to reduce LOD transitions
+	volume.lod_distance = 120.0  # Higher = more detail at distance, reduces contour banding
 	volume.collision_lod_count = 2
 	volume.generator = generator
 	volume.stream = stream
@@ -359,10 +359,11 @@ static func _setup_rocky_planet(body: StellarBody, root: Node3D, settings: Setti
 	# Keep all edited blocks loaded. Leaving this off enables data streaming, but it is slower
 	volume.full_load_mode_enabled = true
 
-	# Disable normalmap temporarily - causes chunk seams and artifacts with craters
-	volume.normalmap_enabled = false
-	volume.normalmap_tile_resolution_min = 4
-	volume.normalmap_tile_resolution_max = 8
+	# Re-enabled normalmap to smooth LOD transitions visually.
+	# Min 4 was too small → visible tile grid artifact; 8 is safer.
+	volume.normalmap_enabled = true
+	volume.normalmap_tile_resolution_min = 8
+	volume.normalmap_tile_resolution_max = 16
 	volume.normalmap_begin_lod_index = 2
 	volume.normalmap_max_deviation_degrees = 50
 	volume.normalmap_octahedral_encoding_enabled = false
@@ -373,7 +374,7 @@ static func _setup_rocky_planet(body: StellarBody, root: Node3D, settings: Setti
 	volume.mesh_block_size = 32
 
 	volume.mesher = VoxelMesherTransvoxel.new()
-	volume.mesher.mesh_optimization_error_threshold = 0.005
+	volume.mesher.mesh_optimization_error_threshold = 0.0  # Disable mesh simplification to eliminate contour steps
 	#volume.set_process_mode(VoxelLodTerrain.PROCESS_MODE_PHYSICS)
 	body.volume = volume
 	root.add_child(volume)

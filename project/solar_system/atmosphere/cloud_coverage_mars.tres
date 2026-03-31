@@ -1,4 +1,4 @@
-[gd_resource type="Cubemap" script_class="NoiseCubemap" load_steps=3 format=3 uid="uid://ghi3h7wjp2ep"]
+[gd_resource type="Cubemap" script_class="NoiseCubemap" format=3 uid="uid://ghi3h7wjp2ep"]
 
 [ext_resource type="Script" uid="uid://41k8bisnal0h" path="res://addons/zylann.atmosphere/noise_cubemap.gd" id="1_o0t4c"]
 
