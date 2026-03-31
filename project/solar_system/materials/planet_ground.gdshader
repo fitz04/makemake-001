@@ -120,7 +120,8 @@ void fragment() {
 		mountain_height + mountain_smoothness, v_planet_height);
 	topness = mix(topness, 0.0, mountain_factor);
 
-	float triplanar_blend_sharpness = 3.0;  // Softer blending to reduce slope artifacts
+	// Dynamic triplanar sharpness: sharp close-up (4.0), soft far away (1.5) to hide axis-switch artifacts
+	float triplanar_blend_sharpness = mix(1.5, 4.0, clamp(1.0 - v_camera_distance / 500.0, 0.0, 1.0));
 	vec3 triplanar_power_normal = pow(abs(normal_model), vec3(triplanar_blend_sharpness));
 	triplanar_power_normal /= dot(triplanar_power_normal, vec3(1.0));
 
@@ -159,7 +160,7 @@ void fragment() {
 	biome_color = mix(biome_color, u_landing_basin_color, landing_blend);
 
 	// 2. Ore Highlands - elevation-based (above 50m)
-	float highland_blend = smoothstep(30.0, 70.0, height_from_surface);
+	float highland_blend = smoothstep(10.0, 120.0, height_from_surface);
 	biome_color = mix(biome_color, u_ore_highlands_color, highland_blend);
 
 	// 3. Fire-Ice Basin - spherical distance from basin center
@@ -185,10 +186,9 @@ void fragment() {
 		}
 	}
 
-	// DEBUG: single texture only — no top/side mixing
-	ALBEDO = side_col;
-	//vec3 colored_albedo = base_albedo * biome_color;
-	//ALBEDO = mix(colored_albedo, base_albedo * u_crater_dust_color, dust_factor * 0.6);
+	vec3 base_albedo = mix(side_col, top_col, topness);
+	vec3 colored_albedo = base_albedo * biome_color;
+	ALBEDO = mix(colored_albedo, base_albedo * u_crater_dust_color, dust_factor * 0.6);
 	NORMAL_MAP = mix(side_norm, top_norm, topness);
 	NORMAL = normal_view;
 
